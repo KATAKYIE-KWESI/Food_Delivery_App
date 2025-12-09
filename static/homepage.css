@@ -106,3 +106,60 @@ a{
   background-color: tomato;
   color: white;
 }
+
+
+/*-------------------------header-----------------*/
+.header {
+  height: 34vw;
+  margin: 30px auto;
+  background: url('/static/assets/header_img.png') no-repeat; /* relative path from CSS */
+  background-size: contain;
+  background-position: center; /* optional: center image */
+  position: relative;
+}
+
+/* allows smooth animation */
+@Keyframes fadeIn{
+ 0%{
+  opacity: 0;
+ }
+ 100%{
+   opacity: 1;
+ }
+}
+
+.header-contents{
+ position: absolute;
+ display: flex;
+ flex-direction: column;
+ align-items: start;
+ gap: 1.5vw;
+ max-width: 50%;
+ bottom: 10%;
+ left: 6vw;
+ animation: fadeIn 3s;
+}
+
+.header-contents h2{
+ font-weight: 400;
+ color: white;
+ font-size: max(4vw,20px);
+}
+
+.header-contents p{
+ color: white;
+ font-size: 1vw;
+}
+
+.header-contents button{
+ border: none;
+ color: #747474;
+ font-weight: 500;
+ padding: 1vw 2.3vw;
+ background-color: white;
+ font-size: max(1vw,13px);
+ border-radius: 50px;
+
+}
+
+
