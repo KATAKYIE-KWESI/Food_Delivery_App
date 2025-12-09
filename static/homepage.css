@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+*{
+ padding: 0;
+ margin: 0;
+ box-sizing: border-box;
+ font-family: 'Poppins', sans-serif;
+}
+
+body{
+ min-height: 100vh;
+ width: 80%;
+ margin: auto;
+}
+
+a{
+ text-decoration: none;
+ color: inherit;
+}
+
+.logo{
+  color: red;
+  font-size: 35px;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.navbar{
+ padding: 20px 0px;
+ display: flex;
+ justify-content: space-between;
+ align-items: center;
+}
+
+.navbar-menu{
+ display: flex;
+ list-style: none;
+ gap: 20px;
+ color: #49557e;
+ font-size: 18px;
+}
+
+/* UNDERLINE ANIMATION */
+.navbar-menu li a::after {
+  content: "";
+  display: block;
+  height: 2px;
+  width: 0;
+  background: tomato;
+  transition: width 0.3s;
+  margin-top: 5px;
+}
+
+.navbar-menu li a:hover::after {
+  width: 100%;
+}
+
+
+/* Container for hamburger / right-side items */
+.hamburger {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* space between icons and button */
+}
+
+/* Search icon */
+.hamburger .search-icon {
+  position: relative;
+  font-size: 20px;
+  cursor: pointer;
+  color: #49557e;
+}
+
+/* Shopping cart with dot */
+.hamburger .shopping-cart {
+  position: relative;
+  font-size: 20px;
+  cursor: pointer;
+  color: #49557e;
+}
+
+/* Small red dot on shopping cart */
+.hamburger .shopping-cart .dot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 8px;
+  height: 8px;
+  background-color: tomato;
+  border-radius: 50%;
+}
+
+/* Sign-in button */
+.hamburger button {
+  background: transparent;
+  font-size: 16px;
+  color: #49557e;
+  border: 1px solid tomato;
+  padding: 8px 25px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.hamburger button:hover {
+  background-color: tomato;
+  color: white;
+}

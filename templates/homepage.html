@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JollyFoods</title>
+
+    <link rel="stylesheet" href="{% static 'homepage.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<!---------------------------------Nav Bar  ------------------------------------------->
+   <div class="navbar">
+       <a href="{% url 'homepage' %}" class="logo">JollyFoods.</a>
+
+       <ul class="navbar-menu">
+           <li><a href="{% url 'homepage' %}">Home</a></li>
+           <li><a href="{% url 'menu' %}">Menu</a></li>
+           <li><a href="{% url 'contact' %}">Contact Us</a></li>
+           <li><a href="{% url 'mobile' %}">Mobile-app</a></li>
+       </ul>
+
+           <div class="hamburger">
+               <div class="search-icon">
+                  <i class="fa-solid fa-magnifying-glass"></i>
+               </div>
+                   <div class="shopping-cart">
+                     <i class="fa-solid fa-basket-shopping"></i>
+                     <span class="dot"></span>     <!-- small red dot -->
+                   </div>
+               <button>sign in</button>
+           </div>
+
+   </div>
+</body>
+</html>
