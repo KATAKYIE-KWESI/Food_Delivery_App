@@ -294,6 +294,7 @@ a{
 .food-description {
   font-size: 0.9rem;
   color: #555;
+  margin: 5px 0;
 }
 
 .food-price {
@@ -301,3 +302,71 @@ a{
   font-weight: 600;
   color: tomato;
 }
+
+/* Quantity selector container */
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* put it on the right */
+  gap: 5px;
+}
+
+/* Initial big + button */
+.quantity-selector .add-btn {
+  background-color: tomato;
+  border: none;
+  color: white;
+  padding: 5px 12px;
+  font-size: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s;
+}
+
+.quantity-selector .add-btn:hover {
+  background-color: #e5533c; /* darker on hover */
+}
+
+/* Counter that appears after clicking + */
+.quantity-selector .counter {
+  display: none; /* hidden by default */
+  align-items: center;
+  gap: 10px;
+  background-color: #f5f5f5;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+/* Minus and plus buttons inside counter */
+.quantity-selector .counter button {
+  background-color: tomato;
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.quantity-selector .counter button:hover {
+  background-color: #e5533c;
+}
+
+/* Quantity number */
+.quantity-selector .quantity {
+  min-width: 20px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+
+
+

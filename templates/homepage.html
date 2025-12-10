@@ -63,7 +63,6 @@
         </div>
         <hr/>
    </div>
-<!---------------------------------FOOD -DISPLAY---------------------------------------->
     <div class="food-display" id="food-display">
       <h2>Top dishes near you</h2>
       <div class="food-display-list">
@@ -74,6 +73,7 @@
             <!-- Food name and rating on the same line -->
             <div class="food-header">
               <h3>{{ food.name }}</h3>
+
               <div class="rating">
                 {% for i in "12345" %}
                   {% if forloop.counter <= food.rating %}
@@ -90,10 +90,52 @@
 
             <!-- Price -->
             <p class="food-price">${{ food.price }}</p>
+
+            <!-- Quantity Selector -->
+            <div class="quantity-selector">
+              <button class="add-btn"><i class="fa-solid fa-plus"></i></button>
+              <div class="counter" style="display: none;">
+                <button class="minus-btn"><i class="fa-solid fa-minus"></i></button>
+                <span class="quantity">1</span>
+                <button class="plus-btn"><i class="fa-solid fa-plus"></i></button>
+              </div>
+            </div>
           </div>
         {% endfor %}
-      </div>
-    </div>
+      </div> <!-- close food-display-list -->
+    </div> <!-- close food-display -->
+
+
+
+<script>
+document.querySelectorAll('.quantity-selector').forEach(selector => {
+  const addBtn = selector.querySelector('.add-btn');
+  const counter = selector.querySelector('.counter');
+  const minusBtn = selector.querySelector('.minus-btn');
+  const plusBtn = selector.querySelector('.plus-btn');
+  const quantity = selector.querySelector('.quantity');
+
+  addBtn.addEventListener('click', () => {
+    addBtn.style.display = 'none';
+    counter.style.display = 'flex';
+  });
+
+  plusBtn.addEventListener('click', () => {
+    quantity.textContent = parseInt(quantity.textContent) + 1;
+  });
+
+  minusBtn.addEventListener('click', () => {
+    let current = parseInt(quantity.textContent);
+    if(current > 1){
+      quantity.textContent = current - 1;
+    } else {
+      counter.style.display = 'none';
+      addBtn.style.display = 'inline-block';
+      quantity.textContent = 1;
+    }
+  });
+});
+</script>
 
 
 </body>
