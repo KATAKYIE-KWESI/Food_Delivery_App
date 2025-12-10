@@ -46,5 +46,22 @@
        </div>
    </div>
 
+<!------------------END OF HEADER--------------->
+
+
+<!-------------------------------EXPLORE-MENU----------------------------------------->
+   <div class="explore-menu" id="explore-menu">
+        <h1>Explore our menu</h1>
+        <p class="explore-menu-text">Choose from a diverse menu featuring a delectable array of dishes crafted with the finest ingredients and culinary expertise.Our mission is to satisfy your cravings and elevate your dining experience,one delicious meal at a time</p>
+        <div class="explore-menu-list">
+            {% for item in menu_list %}
+                <div class="explore-menu-list-item">
+                    <img src="{% static 'assets/' %}{{ item.menu_image }}" alt="{{ item.menu_name }}">
+                    <p>{{ item.menu_name }}</p>
+                </div>
+            {% endfor %}
+        </div>
+        <hr/>
+   </div>
 </body>
 </html>
