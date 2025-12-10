@@ -190,6 +190,25 @@ a{
  overflow-x: scroll;
 }
 
+.explore-menu-list-item {
+  width: 7.5vw;
+  min-width: 80px;
+  cursor: pointer;
+  border-radius: 20%;             /* not fully round at first */
+  transition: border-radius 0.3s ease,
+              border 0.3s ease,
+              transform 0.3s ease;
+  border: 3px solid transparent;
+}
+
+/* Hover effect */
+.explore-menu-list-item:hover {
+  border-radius: 50%;            /* becomes a perfect circle */
+  transform: scale(1.05);        /* optional: small zoom */
+}
+
+
+
 /* hides the scroll bar */
 .explore-menu-list::-webkit-scrollbar{
  display: none;
@@ -202,6 +221,9 @@ a{
  border-radius: 50%;
  transition: 0.2s;
 }
+
+
+
 
 .explore-menu-list-item p{
  margin-top: 10px;
@@ -216,4 +238,5 @@ a{
  background-color: #e2e2e2;
  border: none;
 }
+
 

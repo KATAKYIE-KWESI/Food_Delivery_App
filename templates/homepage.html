@@ -63,5 +63,33 @@
         </div>
         <hr/>
    </div>
+
+<!--------------STORE-CONTEXT-------------------------------------------------------------->
+     <div class="food-display" id="food-display">
+        <h2>Top dishes near you</h2>
+        <div class="food-display-list">
+            {% for food in food_list %}
+              <div class="food-item">
+                <img src="{% static 'assets/' %}{{ food.image }}" alt="{{ food.name }}">
+                <h3>{{ food.name }}</h3>
+
+                 <!--  for loop for star ratings ---->
+                <div class="rating">
+                    {% for i in "12345" %}
+                        {% if forloop.counter <= food.rating %}
+                            <i class="fa-solid fa-star" style="color:gold;"></i>
+                        {% else %}
+                            <i class="fa-regular fa-star" style="color:gold;"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+              </div>
+              <p>{{ food.description }}</p>
+              <p>${{ food.price }}</p>
+            {% endfor %}
+        </div>
+    </div>
+
+
 </body>
 </html>
