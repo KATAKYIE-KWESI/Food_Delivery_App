@@ -63,31 +63,36 @@
         </div>
         <hr/>
    </div>
+<!---------------------------------FOOD -DISPLAY---------------------------------------->
+    <div class="food-display" id="food-display">
+      <h2>Top dishes near you</h2>
+      <div class="food-display-list">
+        {% for food in food_list %}
+          <div class="food-item">
+            <img src="{% static 'assets/' %}{{ food.image }}" alt="{{ food.name }}">
 
-<!--------------STORE-CONTEXT-------------------------------------------------------------->
-     <div class="food-display" id="food-display">
-        <h2>Top dishes near you</h2>
-        <div class="food-display-list">
-            {% for food in food_list %}
-              <div class="food-item">
-                <img src="{% static 'assets/' %}{{ food.image }}" alt="{{ food.name }}">
-                <h3>{{ food.name }}</h3>
-
-                 <!--  for loop for star ratings ---->
-                <div class="rating">
-                    {% for i in "12345" %}
-                        {% if forloop.counter <= food.rating %}
-                            <i class="fa-solid fa-star" style="color:gold;"></i>
-                        {% else %}
-                            <i class="fa-regular fa-star" style="color:gold;"></i>
-                        {% endif %}
-                    {% endfor %}
-                </div>
+            <!-- Food name and rating on the same line -->
+            <div class="food-header">
+              <h3>{{ food.name }}</h3>
+              <div class="rating">
+                {% for i in "12345" %}
+                  {% if forloop.counter <= food.rating %}
+                    <i class="fa-solid fa-star"></i>
+                  {% else %}
+                    <i class="fa-regular fa-star"></i>
+                  {% endif %}
+                {% endfor %}
               </div>
-              <p>{{ food.description }}</p>
-              <p>${{ food.price }}</p>
-            {% endfor %}
-        </div>
+            </div>
+
+            <!-- Description -->
+            <p class="food-description">{{ food.description }}</p>
+
+            <!-- Price -->
+            <p class="food-price">${{ food.price }}</p>
+          </div>
+        {% endfor %}
+      </div>
     </div>
 
 
