@@ -126,9 +126,6 @@ def payment(request):
 
 
 
-
-
-
 def cart(request):
     #Display cart page
     if request.user.is_authenticated:
@@ -370,7 +367,7 @@ def login_view(request):
 
 
 def logout_view(request):
-    """Handle user logout"""
+
     logout(request)
     return redirect('homepage')  # Redirect to homepage after logout
 
