@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shopping Cart - JollyFoods</title>
+    <link rel="stylesheet" href="{% static 'homepage.css' %}">
+    <link rel="stylesheet" href="{% static 'cart.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+<!---------------------------------Nav Bar  ------------------------------------------->
+<div class="navbar">
+    <a href="{% url 'homepage' %}" class="logo">JollyFoods.</a>
+
+    <ul class="navbar-menu">
+        <li><a href="{% url 'homepage' %}">Home</a></li>
+        <li><a href="{% url 'menu' %}">Menu</a></li>
+        <li><a href="{% url 'contact' %}">Contact Us</a></li>
+        <li><a href="{% url 'payment' %}">Payment</a></li>
+    </ul>
+
+    <div class="hamburger">
+
+        <div class="shopping-cart">
+            <a href="{% url 'cart' %}">
+                <i class="fa-solid fa-basket-shopping"></i>
+                <span class="cart-badge" id="cartBadge">{{ cart_count }}</span>
+            </a>
+        </div>
+
+    </div>
+</div>
+
+<!-------------------CART SECTION------------------>
+<div class="cart-container">
+    <h1 class="cart-title">Your Shopping Cart</h1>
+
+    {% if cart_items %}
+    <div class="cart-content">
+        <div class="cart-items-section">
+            {% for item in cart_items %}
+            <div class="cart-item" data-item-id="{{ item.id }}">
+                <img src="{% static 'assets/' %}{{ item.food_image }}" alt="{{ item.food_name }}">
+
+                <div class="item-details">
+                    <h3>{{ item.food_name }}</h3>
+                    <p class="item-price">${{ item.food_price }}</p>
+                </div>
+
+                <div class="item-quantity">
+                    <button class="qty-btn minus-btn" data-item-id="{{ item.id }}">
+                        <i class="fa-solid fa-minus"></i>
+                    </button>
+                    <span class="quantity">{{ item.quantity }}</span>
+                    <button class="qty-btn plus-btn" data-item-id="{{ item.id }}">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+
+                <div class="item-total">
+                    <p>${{ item.get_total_price }}</p>
+                </div>
+
+                <button class="remove-btn" data-item-id="{{ item.id }}">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="cart-summary">
+            <h2>Order Summary</h2>
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span id="subtotal">${{ cart_total }}</span>
+            </div>
+            <div class="summary-row">
+                <span>Delivery Fee</span>
+                <span>$5.00</span>
+            </div>
+            <div class="summary-row">
+                <span>Tax (10%)</span>
+                <span id="tax">${{ cart_total|floatformat:2 }}</span>
+            </div>
+            <hr>
+            <div class="summary-row total">
+                <span>Total</span>
+                <span id="total">${{ cart_total|add:5 }}</span>
+            </div>
+
+            <button class="checkout-btn">Proceed to Checkout</button>
+            <a href="{% url 'homepage' %}" class="continue-shopping">
+                <i class="fa-solid fa-arrow-left"></i> Continue Shopping
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-cart">
+        <i class="fa-solid fa-cart-shopping"></i>
+        <h2>Your cart is empty</h2>
+        <p>Add some delicious items to get started!</p>
+        <a href="{% url 'homepage' %}" class="browse-menu-btn">Browse Menu</a>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// Update cart totals
+function updateCartTotals() {
+    let subtotal = 0;
+    document.querySelectorAll('.cart-item').forEach(item => {
+        const quantity = parseInt(item.querySelector('.quantity').textContent);
+        const price = parseFloat(item.querySelector('.item-price').textContent.replace('$', ''));
+        const itemTotal = quantity * price;
+        item.querySelector('.item-total p').textContent = `$${itemTotal.toFixed(2)}`;
+        subtotal += itemTotal;
+    });
+
+    const tax = subtotal * 0.10;
+    const deliveryFee = 5.00;
+    const total = subtotal + tax + deliveryFee;
+
+    document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
+    document.getElementById('total').textContent = `$${total.toFixed(2)}`;
+}
+
+// Update quantity
+document.querySelectorAll('.plus-btn, .minus-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        const itemId = this.dataset.itemId;
+        const cartItem = this.closest('.cart-item');
+        const quantityEl = cartItem.querySelector('.quantity');
+        let quantity = parseInt(quantityEl.textContent);
+
+        if (this.classList.contains('plus-btn')) {
+            quantity++;
+        } else if (this.classList.contains('minus-btn') && quantity > 1) {
+            quantity--;
+        } else if (quantity === 1 && this.classList.contains('minus-btn')) {
+            if (confirm('Remove this item from cart?')) {
+                await removeItem(itemId);
+            }
+            return;
+        }
+
+        quantityEl.textContent = quantity;
+        updateCartTotals();
+
+        // Update on server
+        await fetch('/cart/update/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                item_id: itemId,
+                quantity: quantity
+            })
+        });
+    });
+});
+
+// Remove item
+document.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', async function() {
+        if (confirm('Remove this item from cart?')) {
+            const itemId = this.dataset.itemId;
+            await removeItem(itemId);
+        }
+    });
+});
+
+async function removeItem(itemId) {
+    const response = await fetch('/cart/remove/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({ item_id: itemId })
+    });
+
+    if (response.ok) {
+        location.reload();
+    }
+}
+
+// Checkout button
+document.querySelector('.checkout-btn')?.addEventListener('click', function() {
+    window.location.href = "{% url 'payment' %}";
+});
+</script>
+
+</body>
+</html>

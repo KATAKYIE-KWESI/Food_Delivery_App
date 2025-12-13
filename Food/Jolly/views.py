@@ -1,5 +1,16 @@
 from itertools import groupby
 from operator import itemgetter
+from django.views.decorators.http import require_POST
+from .models import CartItem
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+
+
+
 
 from django.shortcuts import render
 
@@ -112,3 +123,254 @@ def mobile(request):
 
 def payment(request):
     return render(request, 'payment.html')
+
+
+
+
+
+
+def cart(request):
+    #Display cart page
+    if request.user.is_authenticated:
+        cart_items = CartItem.objects.filter(user=request.user)
+    else:
+        session_key = request.session.session_key
+        if not session_key:
+            request.session.create()
+            session_key = request.session.session_key
+        cart_items = CartItem.objects.filter(session_key=session_key)
+
+    total = sum(item.get_total_price() for item in cart_items)
+
+    context = {
+        'cart_items': cart_items,
+        'cart_total': total,
+        'cart_count': sum(item.quantity for item in cart_items)
+    }
+    return render(request, 'cart.html', context)
+
+
+@require_POST
+def add_to_cart(request):
+    #Add item to cart via AJAX
+    try:
+        data = json.loads(request.body)
+        food_name = data.get('name')
+        food_price = data.get('price')
+        food_image = data.get('image')
+        quantity = data.get('quantity', 1)
+
+        if request.user.is_authenticated:
+            cart_item, created = CartItem.objects.get_or_create(
+                user=request.user,
+                food_name=food_name,
+                defaults={
+                    'food_price': food_price,
+                    'food_image': food_image,
+                    'quantity': quantity
+                }
+            )
+            if not created:
+                cart_item.quantity += quantity
+                cart_item.save()
+        else:
+            session_key = request.session.session_key
+            if not session_key:
+                request.session.create()
+                session_key = request.session.session_key
+
+            cart_item, created = CartItem.objects.get_or_create(
+                session_key=session_key,
+                food_name=food_name,
+                defaults={
+                    'food_price': food_price,
+                    'food_image': food_image,
+                    'quantity': quantity
+                }
+            )
+            if not created:
+                cart_item.quantity += quantity
+                cart_item.save()
+
+        # Get updated cart count
+        if request.user.is_authenticated:
+            cart_count = sum(item.quantity for item in CartItem.objects.filter(user=request.user))
+        else:
+            cart_count = sum(item.quantity for item in CartItem.objects.filter(session_key=session_key))
+
+        return JsonResponse({
+            'success': True,
+            'cart_count': cart_count,
+            'message': f'{food_name} added to cart!'
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_POST
+def update_cart_item(request):
+    """Update cart item quantity"""
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('item_id')
+        quantity = data.get('quantity')
+
+        cart_item = CartItem.objects.get(id=item_id)
+
+        if quantity > 0:
+            cart_item.quantity = quantity
+            cart_item.save()
+        else:
+            cart_item.delete()
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@require_POST
+def remove_from_cart(request):
+    """Remove item from cart"""
+    try:
+        data = json.loads(request.body)
+        item_id = data.get('item_id')
+
+        cart_item = CartItem.objects.get(id=item_id)
+        cart_item.delete()
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+def get_cart_count(request):
+    """Get cart count for navbar"""
+    if request.user.is_authenticated:
+        count = sum(item.quantity for item in CartItem.objects.filter(user=request.user))
+    else:
+        session_key = request.session.session_key
+        if session_key:
+            count = sum(item.quantity for item in CartItem.objects.filter(session_key=session_key))
+        else:
+            count = 0
+    return JsonResponse({'cart_count': count})
+
+
+
+# ============= AUTHENTICATION VIEWS =============
+
+@require_POST
+def signup_view(request):
+    """Handle user signup via AJAX"""
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+
+        # Validate input
+        if not username or not email or not password:
+            return JsonResponse({
+                'success': False,
+                'error': 'All fields are required'
+            })
+
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Username already exists'
+            })
+
+        # Check if email already exists
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'Email already registered'
+            })
+
+        # Create new user
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password
+        )
+
+        # Automatically log the user in after signup
+        login(request, user)
+
+        # Transfer cart items from session to user account (if any)
+        session_key = request.session.session_key
+        if session_key:
+            from .models import CartItem  # Import your CartItem model
+            CartItem.objects.filter(session_key=session_key).update(
+                user=user,
+                session_key=None
+            )
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Account created successfully! Welcome to JollyFoods!'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+@require_POST
+def login_view(request):
+    """Handle user login via AJAX"""
+    try:
+        data = json.loads(request.body)
+        username = data.get('username')
+        password = data.get('password')
+
+        # Validate input
+        if not username or not password:
+            return JsonResponse({
+                'success': False,
+                'error': 'Username and password are required'
+            })
+
+        # Authenticate user
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            # Login successful
+            login(request, user)
+
+            # Transfer cart items from session to user account (if any)
+            session_key = request.session.session_key
+            if session_key:
+                from .models import CartItem
+                CartItem.objects.filter(session_key=session_key).update(
+                    user=user,
+                    session_key=None
+                )
+
+            return JsonResponse({
+                'success': True,
+                'message': f'Welcome back, {user.username}!'
+            })
+        else:
+            # Login failed
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid username or password'
+            })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
+
+
+def logout_view(request):
+    """Handle user logout"""
+    logout(request)
+    return redirect('homepage')  # Redirect to homepage after logout
+

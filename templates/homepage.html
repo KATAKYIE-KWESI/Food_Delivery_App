@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="{% static 'homepage.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'auth_modal.css' %}">
 
 </head>
 <body>
@@ -24,21 +25,39 @@
            <li><a href="{% url 'payment' %}">Payment</a></li>
        </ul>
 
-           <div class="hamburger">
-               <div class="search-icon">
-                  <i class="fa-solid fa-magnifying-glass"></i>
-               </div>
-                   <div class="shopping-cart">
-                     <i class="fa-solid fa-basket-shopping"></i>
-                     <span class="dot"></span>
-                   </div>
-               <button>sign in</button>
-           </div>
+          <div class="hamburger">
+                <div class="search-icon">
+                   <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
 
+                <div class="shopping-cart">
+                    <a href="{% url 'cart' %}">
+                        <i class="fa-solid fa-basket-shopping"></i>
+                        <span class="dot" id="cart-dot-count"></span>
+                    </a>
+                </div>
+                {% if user.is_authenticated %}
+                <div class="user-menu">
+                    <button class="user-btn">
+                        <i class="fa-solid fa-user"></i>
+                        {{ user.username }}
+                    </button>
+                    <div class="user-dropdown">
+                        <a href="#"><i class="fa-solid fa-user"></i> Profile</a>
+                        <a href="{% url 'cart' %}"><i class="fa-solid fa-shopping-bag"></i> Orders</a>
+                        <a href="{% url 'logout' %}"><i class="fa-solid fa-sign-out"></i> Logout</a>
+                    </div>
+                </div>
+                {% else %}
+                    <button id="openAuthModal">sign in</button>
+                {% endif %}
+          </div>
    </div>
 
 <!-------------------END OF NAVBAR------------------>
 
+<!-- Include Auth Modal Template -->
+{% include 'auth_modal.html' %}
 
 <!----------------------------HEADER------------------------------------------------------>
    <div class="header">
@@ -287,79 +306,354 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
 </script>
 
 <!--------------------------------END OF FOOTER---------------------------------->
+
+<!---------------------JAVASCRIPT --------------------------------------------------------------------->
 <script>
-// Quantity selector functionality
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// Update cart badge
+async function updateCartBadge() {
+    const response = await fetch('/cart/count/');
+    const data = await response.json();
+    const badge = document.querySelector('.shopping-cart .dot');
+    if (data.cart_count > 0) {
+        badge.style.display = 'block';
+        badge.textContent = data.cart_count;
+        badge.style.width = '18px';
+        badge.style.height = '18px';
+        badge.style.display = 'flex';
+        badge.style.alignItems = 'center';
+        badge.style.justifyContent = 'center';
+        badge.style.fontSize = '11px';
+        badge.style.color = 'white';
+    }
+}
+
+// Quantity selector functionality with cart integration
 document.querySelectorAll('.quantity-selector').forEach(selector => {
-  const addBtn = selector.querySelector('.add-btn');
-  const counter = selector.querySelector('.counter');
-  const minusBtn = selector.querySelector('.minus-btn');
-  const plusBtn = selector.querySelector('.plus-btn');
-  const quantity = selector.querySelector('.quantity');
+    const addBtn = selector.querySelector('.add-btn');
+    const counter = selector.querySelector('.counter');
+    const minusBtn = selector.querySelector('.minus-btn');
+    const plusBtn = selector.querySelector('.plus-btn');
+    const quantity = selector.querySelector('.quantity');
 
-  addBtn.addEventListener('click', () => {
-    addBtn.style.display = 'none';
-    counter.style.display = 'flex';
-  });
+    // Get food item details
+    const foodItem = selector.closest('.food-item');
+    const foodName = foodItem.querySelector('.food-header h3').textContent;
+    const foodPrice = parseFloat(foodItem.querySelector('.food-price').textContent.replace('$', ''));
+    const foodImage = foodItem.querySelector('img').getAttribute('src').split('/').pop();
 
-  plusBtn.addEventListener('click', () => {
-    quantity.textContent = parseInt(quantity.textContent) + 1;
-  });
+    let currentQuantity = 1;
 
-  minusBtn.addEventListener('click', () => {
-    let current = parseInt(quantity.textContent);
-    if(current > 1){
-      quantity.textContent = current - 1;
-    } else {
-      counter.style.display = 'none';
-      addBtn.style.display = 'inline-block';
-      quantity.textContent = 1;
-    }
-  });
+    addBtn.addEventListener('click', () => {
+        addBtn.style.display = 'none';
+        counter.style.display = 'flex';
+        currentQuantity = 1;
+        quantity.textContent = currentQuantity;
+    });
+
+    plusBtn.addEventListener('click', () => {
+        currentQuantity++;
+        quantity.textContent = currentQuantity;
+    });
+
+    minusBtn.addEventListener('click', async () => {
+        if(currentQuantity > 1){
+            currentQuantity--;
+            quantity.textContent = currentQuantity;
+        } else {
+            // Add to cart before hiding
+            await addToCart(foodName, foodPrice, foodImage, currentQuantity);
+
+            counter.style.display = 'none';
+            addBtn.style.display = 'flex';
+            currentQuantity = 1;
+            quantity.textContent = currentQuantity;
+        }
+    });
+
+    // Add to cart when counter is visible and user clicks elsewhere
+    counter.addEventListener('blur', async () => {
+        if (counter.style.display === 'flex') {
+            await addToCart(foodName, foodPrice, foodImage, currentQuantity);
+        }
+    }, true);
 });
 
-// Smooth scroll to category sections
-document.querySelectorAll('.category-nav a').forEach(link => {
-  link.addEventListener('click', function(e) {
-    e.preventDefault();
-    const targetId = this.getAttribute('href').substring(1);
-    const targetElement = document.getElementById(targetId);
+// Add to cart function
+async function addToCart(name, price, image, qty) {
+    try {
+        const response = await fetch('/cart/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                name: name,
+                price: price,
+                image: image,
+                quantity: qty
+            })
+        });
 
-    if (targetElement) {
-      targetElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-
-      document.querySelectorAll('.category-nav a').forEach(a => a.classList.remove('active'));
-      this.classList.add('active');
+        const data = await response.json();
+        if (data.success) {
+            // Show success message
+            showNotification(data.message);
+            updateCartBadge();
+        }
+    } catch (error) {
+        console.error('Error adding to cart:', error);
     }
-  });
-});
+}
 
-// Highlight active category while scrolling
-window.addEventListener('scroll', () => {
-  const sections = document.querySelectorAll('.category-section');
-  const navLinks = document.querySelectorAll('.category-nav a');
+// Show notification
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
 
-  let current = '';
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
+}
 
-  sections.forEach(section => {
-    const sectionTop = section.offsetTop;
-    const sectionHeight = section.clientHeight;
-    if (pageYOffset >= (sectionTop - 150)) {
-      current = section.getAttribute('id');
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
-  });
-
-  navLinks.forEach(link => {
-    link.classList.remove('active');
-    if (link.getAttribute('href').substring(1) === current) {
-      link.classList.add('active');
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
     }
-  });
+`;
+document.head.appendChild(style);
+
+// Update cart badge on page load
+updateCartBadge();
+
+// Make shopping cart clickable
+document.querySelector('.shopping-cart').addEventListener('click', () => {
+    window.location.href = "{% url 'cart' %}";
 });
 </script>
 
+<!-- Include Auth Modal JavaScript -->
+<script>
+// Auth Modal JavaScript (only opens when clicked, no auto-popup)
+(function() {
+    const authModal = document.getElementById('authModal');
+    const closeModal = document.getElementById('closeModal');
+    const loginForm = document.getElementById('loginForm');
+    const signupForm = document.getElementById('signupForm');
+    const showSignup = document.getElementById('showSignup');
+    const showLogin = document.getElementById('showLogin');
+    const loginFormSubmit = document.getElementById('loginFormSubmit');
+    const signupFormSubmit = document.getElementById('signupFormSubmit');
+    const openAuthModalBtn = document.getElementById('openAuthModal');
 
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    // Open modal when sign in button clicked
+    if (openAuthModalBtn) {
+        openAuthModalBtn.addEventListener('click', () => {
+            authModal.classList.add('active');
+            // Reset to login form
+            signupForm.classList.remove('active');
+            loginForm.classList.add('active');
+        });
+    }
+
+    // Close modal
+    closeModal.addEventListener('click', () => {
+        authModal.classList.remove('active');
+    });
+
+    // Close modal on overlay click
+    authModal.querySelector('.auth-modal-overlay').addEventListener('click', () => {
+        authModal.classList.remove('active');
+    });
+
+    // Switch to signup form
+    showSignup.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginForm.classList.remove('active');
+        signupForm.classList.add('active');
+    });
+
+    // Switch to login form
+    showLogin.addEventListener('click', (e) => {
+        e.preventDefault();
+        signupForm.classList.remove('active');
+        loginForm.classList.add('active');
+    });
+
+    // Show message function
+    function showMessage(form, message, isError = false) {
+        const existingMsg = form.querySelector('.auth-message');
+        if (existingMsg) existingMsg.remove();
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `auth-message ${isError ? 'error' : 'success'}`;
+        messageDiv.textContent = message;
+        form.insertBefore(messageDiv, form.firstChild);
+
+        if (!isError) {
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+    }
+
+    // Handle login form submission
+    loginFormSubmit.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+        const submitBtn = loginFormSubmit.querySelector('.auth-btn');
+
+        submitBtn.classList.add('loading');
+
+        try {
+            const response = await fetch('/login/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showMessage(loginForm, data.message, false);
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showMessage(loginForm, data.error, true);
+            }
+        } catch (error) {
+            showMessage(loginForm, 'An error occurred. Please try again.', true);
+        } finally {
+            submitBtn.classList.remove('loading');
+        }
+    });
+
+    // Handle signup form submission
+    signupFormSubmit.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('signupUsername').value;
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+        const confirmPassword = document.getElementById('signupConfirmPassword').value;
+        const submitBtn = signupFormSubmit.querySelector('.auth-btn');
+
+        if (password !== confirmPassword) {
+            showMessage(signupForm, 'Passwords do not match!', true);
+            return;
+        }
+
+        if (password.length < 6) {
+            showMessage(signupForm, 'Password must be at least 6 characters!', true);
+            return;
+        }
+
+        submitBtn.classList.add('loading');
+
+        try {
+            const response = await fetch('/signup/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    username: username,
+                    email: email,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showMessage(signupForm, data.message, false);
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showMessage(signupForm, data.error, true);
+            }
+        } catch (error) {
+            showMessage(signupForm, 'An error occurred. Please try again.', true);
+        } finally {
+            submitBtn.classList.remove('loading');
+        }
+    });
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && authModal.classList.contains('active')) {
+            authModal.classList.remove('active');
+        }
+    });
+})();
+</script>
 </body>
 </html>

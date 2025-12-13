@@ -808,3 +808,98 @@ html {
         gap: 12px;
     }
 }
+
+
+/* User Menu Styles - Add this to your homepage.css */
+
+.user-menu {
+    position: relative;
+}
+
+.user-btn {
+    background: transparent;
+    font-size: 16px;
+    color: #49557e;
+    border: 1px solid tomato;
+    padding: 8px 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.user-btn:hover {
+    background-color: tomato;
+    color: white;
+}
+
+.user-btn i {
+    font-size: 14px;
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 10px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.user-menu:hover .user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-dropdown a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    color: #49557e;
+    text-decoration: none;
+    transition: background 0.2s;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.user-dropdown a:last-child {
+    border-bottom: none;
+}
+
+.user-dropdown a:hover {
+    background: #f8f9fa;
+}
+
+.user-dropdown i {
+    color: tomato;
+    width: 20px;
+    font-size: 16px;
+}
+
+/* Animation for user dropdown */
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.user-menu:hover .user-dropdown {
+    animation: dropdownFadeIn 0.3s ease;
+}
