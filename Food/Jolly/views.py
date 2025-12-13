@@ -1,3 +1,6 @@
+from itertools import groupby
+from operator import itemgetter
+
 from django.shortcuts import render
 
 
@@ -80,9 +83,19 @@ def homepage(request):
          "description": "Cooked noodles with sauce.", "rating": 4},
     ]
 
+    food_list_sorted = sorted(food_list, key=itemgetter('category'))
+
+    # Group by category
+    grouped_foods = []
+    for category, items in groupby(food_list_sorted, key=itemgetter('category')):
+        grouped_foods.append({
+            'category': category,
+            'items': list(items)
+        })
     return render(request, "homepage.html", {
         "menu_list": menu_list,
-        "food_list": food_list
+        "food_list": food_list,
+         "grouped_foods": grouped_foods,
     })
 
 
@@ -94,3 +107,8 @@ def contact(request):
 
 def mobile(request):
     return render(request, 'mobile.html')
+
+
+
+def payment(request):
+    return render(request, 'payment.html')

@@ -7,18 +7,21 @@
 
     <link rel="stylesheet" href="{% static 'homepage.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 </head>
 <body>
 
 <!---------------------------------Nav Bar  ------------------------------------------->
    <div class="navbar">
+
        <a href="{% url 'homepage' %}" class="logo">JollyFoods.</a>
+
 
        <ul class="navbar-menu">
            <li><a href="{% url 'homepage' %}">Home</a></li>
            <li><a href="{% url 'menu' %}">Menu</a></li>
            <li><a href="{% url 'contact' %}">Contact Us</a></li>
-           <li><a href="{% url 'mobile' %}">Mobile-app</a></li>
+           <li><a href="{% url 'payment' %}">Payment</a></li>
        </ul>
 
            <div class="hamburger">
@@ -27,7 +30,7 @@
                </div>
                    <div class="shopping-cart">
                      <i class="fa-solid fa-basket-shopping"></i>
-                     <span class="dot"></span>     <!-- small red dot -->
+                     <span class="dot"></span>
                    </div>
                <button>sign in</button>
            </div>
@@ -56,58 +59,236 @@
         <div class="explore-menu-list">
             {% for item in menu_list %}
                 <div class="explore-menu-list-item">
-                    <img src="{% static 'assets/' %}{{ item.menu_image }}" alt="{{ item.menu_name }}">
-                    <p>{{ item.menu_name }}</p>
+                    <a href="#{{ item.menu_name|lower|cut:' ' }}-section" style="text-decoration: none; color: inherit;">
+                        <img src="{% static 'assets/' %}{{ item.menu_image }}" alt="{{ item.menu_name }}" style="cursor: pointer;">
+                        <p>{{ item.menu_name }}</p>
+                    </a>
                 </div>
             {% endfor %}
         </div>
         <hr/>
    </div>
-    <div class="food-display" id="food-display">
-      <h2>Top dishes near you</h2>
-      <div class="food-display-list">
-        {% for food in food_list %}
-          <div class="food-item">
-            <img src="{% static 'assets/' %}{{ food.image }}" alt="{{ food.name }}">
 
-            <!-- Food name and rating on the same line -->
-            <div class="food-header">
-              <h3>{{ food.name }}</h3>
 
-              <div class="rating">
-                {% for i in "12345" %}
-                  {% if forloop.counter <= food.rating %}
-                    <i class="fa-solid fa-star"></i>
-                  {% else %}
-                    <i class="fa-regular fa-star"></i>
-                  {% endif %}
-                {% endfor %}
+        <div class="food-display" id="food-display">
+        <h2>Top dishes near you</h2>
+
+      {% for group in grouped_foods %}
+        <div id="{{ group.category|lower|cut:' ' }}-section" class="category-section">
+
+          <div class="food-display-list">
+            {% for food in group.items %}
+              <div class="food-item">
+                <img src="{% static 'assets/' %}{{ food.image }}" alt="{{ food.name }}">
+                <div class="food-header">
+                  <h3>{{ food.name }}</h3>
+                  <div class="rating">
+                    {% for i in "12345" %}
+                      {% if forloop.counter <= food.rating %}
+                        <i class="fa-solid fa-star"></i>
+                      {% else %}
+                        <i class="fa-regular fa-star"></i>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                <p class="food-description">{{ food.description }}</p>
+                <p class="food-price">${{ food.price }}</p>
+                <div class="quantity-selector">
+                  <button class="add-btn"><i class="fa-solid fa-plus"></i></button>
+                  <div class="counter" style="display: none;">
+                    <button class="minus-btn"><i class="fa-solid fa-minus"></i></button>
+                    <span class="quantity">1</span>
+                    <button class="plus-btn"><i class="fa-solid fa-plus"></i></button>
+                  </div>
+                </div>
               </div>
-            </div>
-
-            <!-- Description -->
-            <p class="food-description">{{ food.description }}</p>
-
-            <!-- Price -->
-            <p class="food-price">${{ food.price }}</p>
-
-            <!-- Quantity Selector -->
-            <div class="quantity-selector">
-              <button class="add-btn"><i class="fa-solid fa-plus"></i></button>
-              <div class="counter" style="display: none;">
-                <button class="minus-btn"><i class="fa-solid fa-minus"></i></button>
-                <span class="quantity">1</span>
-                <button class="plus-btn"><i class="fa-solid fa-plus"></i></button>
-              </div>
-            </div>
+            {% endfor %}
           </div>
-        {% endfor %}
-      </div> <!-- close food-display-list -->
-    </div> <!-- close food-display -->
+        </div>
+      {% endfor %}
+    </div>
 
 
+<!--------------------------------FOOTER---------------------------------------->
+
+<!-- Scroll to Top Button -->
+<button class="scroll-to-top" id="scrollToTop">
+    <i class="fa-solid fa-arrow-up"></i>
+</button>
+
+<footer class="footer">
+    <div class="footer-container">
+        <!-- Company Info Section -->
+        <div class="footer-section">
+            <h2 class="footer-logo">JollyFoods.</h2>
+            <p class="footer-description">
+                Delivering happiness one delicious meal at a time. Fresh ingredients,
+                authentic flavors, and exceptional service since 2020.
+            </p>
+            <div class="taste-appeal">
+                <div class="taste-item">
+                    <i class="fa-solid fa-pepper-hot"></i>
+                    <span>Spicy & Bold</span>
+                </div>
+                <div class="taste-item">
+                    <i class="fa-solid fa-leaf"></i>
+                    <span>Fresh & Organic</span>
+                </div>
+                <div class="taste-item">
+                    <i class="fa-solid fa-fire-flame-curved"></i>
+                    <span>Hot & Ready</span>
+                </div>
+            </div>
+            <div class="social-links">
+                <a href="https://facebook.com" target="_blank" aria-label="Facebook">
+                    <i class="fa-brands fa-facebook"></i>
+                </a>
+                <a href="https://twitter.com" target="_blank" aria-label="Twitter">
+                    <i class="fa-brands fa-twitter"></i>
+                </a>
+                <a href="https://instagram.com" target="_blank" aria-label="Instagram">
+                    <i class="fa-brands fa-instagram"></i>
+                </a>
+                <a href="https://youtube.com" target="_blank" aria-label="YouTube">
+                    <i class="fa-brands fa-youtube"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Company Links -->
+        <div class="footer-section">
+            <h3 class="footer-title">Company</h3>
+            <ul class="footer-links">
+                <li><a href="{% url 'homepage' %}">Home</a></li>
+                <li><a href="{% url 'menu' %}">Our Menu</a></li>
+                <li><a href="#about">About Us</a></li>
+                <li><a href="#careers">Careers</a></li>
+                <li><a href="#blog">Blog</a></li>
+                <li><a href="#press">Press Kit</a></li>
+            </ul>
+        </div>
+
+        <!-- Get in Touch -->
+        <div class="footer-section">
+            <h3 class="footer-title">Get in Touch</h3>
+            <ul class="footer-links">
+                <li><a href="{% url 'contact' %}">Contact Us</a></li>
+                <li><a href="#support">Customer Support</a></li>
+                <li><a href="#faq">FAQ</a></li>
+                <li><a href="#feedback">Feedback</a></li>
+                <li><a href="#partnership">Partner With Us</a></li>
+            </ul>
+        </div>
+
+        <!-- Popular Dishes -->
+        <div class="footer-section">
+            <h3 class="footer-title">Fan Favorites</h3>
+            <ul class="footer-links dish-list">
+                <li><a href="#salad-section"><i class="fa-solid fa-bowl-food"></i> Greek Salad</a></li>
+                <li><a href="#pasta-section"><i class="fa-solid fa-bowl-rice"></i> Creamy Pasta</a></li>
+                <li><a href="#cake-section"><i class="fa-solid fa-cake-candles"></i> Chocolate Cake</a></li>
+                <li><a href="#sandwich-section"><i class="fa-solid fa-burger"></i> Club Sandwich</a></li>
+                <li><a href="#noodles-section"><i class="fa-solid fa-utensils"></i> Spicy Noodles</a></li>
+            </ul>
+            <div class="flavor-badges">
+                <span class="badge">🌶️ Spicy</span>
+                <span class="badge">🧀 Cheesy</span>
+                <span class="badge">🍃 Vegan</span>
+            </div>
+        </div>
+
+        <!-- Newsletter -->
+        <div class="footer-section">
+            <h3 class="footer-title">Stay Updated</h3>
+            <p class="newsletter-text">Get weekly recipes, exclusive deals & food tips delivered to your inbox!</p>
+            <form class="newsletter-form">
+                <input type="email" placeholder="Enter your email" required>
+                <button type="submit">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </form>
+            <div class="promo-box">
+                <i class="fa-solid fa-gift"></i>
+                <div>
+                    <strong>First Order Special</strong>
+                    <p>Get 20% off your first order!</p>
+                </div>
+            </div>
+            <div class="contact-info">
+                <p><i class="fa-solid fa-phone"></i> +233 (555) 123-4567</p>
+                <p><i class="fa-solid fa-envelope"></i> hello@jollyfoods.com</p>
+                <p><i class="fa-solid fa-location-dot"></i> 123 Food Street, Kumasi, GH</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Taste Features Bar -->
+    <div class="taste-features">
+        <div class="taste-feature">
+            <i class="fa-solid fa-clock"></i>
+            <span>30-Min Delivery</span>
+        </div>
+        <div class="taste-feature">
+            <i class="fa-solid fa-certificate"></i>
+            <span>Quality Guaranteed</span>
+        </div>
+        <div class="taste-feature">
+            <i class="fa-solid fa-heart"></i>
+            <span>Made with Love</span>
+        </div>
+        <div class="taste-feature">
+            <i class="fa-solid fa-star"></i>
+            <span>5-Star Rated</span>
+        </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="footer-bottom">
+        <div class="footer-bottom-container">
+            <p>&copy; 2025 JollyFoods. All rights reserved. Made with <i class="fa-solid fa-heart" style="color: #ff6b6b;"></i> in Kumasi</p>
+            <div class="payment-methods">
+                <i class="fa-brands fa-cc-visa" title="Visa"></i>
+                <i class="fa-brands fa-cc-mastercard" title="Mastercard"></i>
+                <i class="fa-brands fa-cc-paypal" title="PayPal"></i>
+                <i class="fa-brands fa-cc-amex" title="American Express"></i>
+                <i class="fa-brands fa-apple-pay" title="Apple Pay"></i>
+            </div>
+        </div>
+    </div>
+</footer>
 
 <script>
+// Scroll to top button functionality
+const scrollToTopBtn = document.getElementById('scrollToTop');
+
+window.addEventListener('scroll', () => {
+    if (window.pageYOffset > 300) {
+        scrollToTopBtn.classList.add('visible');
+    } else {
+        scrollToTopBtn.classList.remove('visible');
+    }
+});
+
+scrollToTopBtn.addEventListener('click', () => {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+});
+
+// Newsletter form submission
+document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = e.target.querySelector('input').value;
+    alert(`Thank you for subscribing! Check ${email} for your 20% discount code! 🎉`);
+    e.target.reset();
+});
+</script>
+
+<!--------------------------------END OF FOOTER---------------------------------->
+<script>
+// Quantity selector functionality
 document.querySelectorAll('.quantity-selector').forEach(selector => {
   const addBtn = selector.querySelector('.add-btn');
   const counter = selector.querySelector('.counter');
@@ -132,6 +313,48 @@ document.querySelectorAll('.quantity-selector').forEach(selector => {
       counter.style.display = 'none';
       addBtn.style.display = 'inline-block';
       quantity.textContent = 1;
+    }
+  });
+});
+
+// Smooth scroll to category sections
+document.querySelectorAll('.category-nav a').forEach(link => {
+  link.addEventListener('click', function(e) {
+    e.preventDefault();
+    const targetId = this.getAttribute('href').substring(1);
+    const targetElement = document.getElementById(targetId);
+
+    if (targetElement) {
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+
+      document.querySelectorAll('.category-nav a').forEach(a => a.classList.remove('active'));
+      this.classList.add('active');
+    }
+  });
+});
+
+// Highlight active category while scrolling
+window.addEventListener('scroll', () => {
+  const sections = document.querySelectorAll('.category-section');
+  const navLinks = document.querySelectorAll('.category-nav a');
+
+  let current = '';
+
+  sections.forEach(section => {
+    const sectionTop = section.offsetTop;
+    const sectionHeight = section.clientHeight;
+    if (pageYOffset >= (sectionTop - 150)) {
+      current = section.getAttribute('id');
+    }
+  });
+
+  navLinks.forEach(link => {
+    link.classList.remove('active');
+    if (link.getAttribute('href').substring(1) === current) {
+      link.classList.add('active');
     }
   });
 });

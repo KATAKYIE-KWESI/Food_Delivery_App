@@ -1,0 +1,271 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment - JollyFoods</title>
+    <link rel="stylesheet" href="{% static 'payment.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <div class="navbar">
+        <a href="{% url 'homepage' %}" class="logo">JollyFoods.</a>
+        <div class="nav-links">
+            <a href="{% url 'homepage' %}"><i class="fa-solid fa-arrow-left"></i> Back to Shop</a>
+        </div>
+    </div>
+
+    <div class="payment-container">
+
+        <div class="order-summary">
+            <h2><i class="fa-solid fa-receipt"></i> Order Summary</h2>
+
+            <div class="order-items">
+                <div class="order-item">
+                    <img src="{% static 'assets/food_1.png' %}" alt="Greek Salad">
+                    <div class="item-details">
+                        <h4>Greek Salad</h4>
+                        <p>Quantity: 2</p>
+                    </div>
+                    <span class="item-price">$25.98</span>
+                </div>
+
+                <div class="order-item">
+                    <img src="{% static 'assets/food_5.png' %}" alt="Chocolate Cake">
+                    <div class="item-details">
+                        <h4>Chocolate Cake</h4>
+                        <p>Quantity: 1</p>
+                    </div>
+                    <span class="item-price">$6.99</span>
+                </div>
+            </div>
+
+            <div class="price-breakdown">
+                <div class="price-row">
+                    <span>Subtotal</span>
+                    <span>$32.97</span>
+                </div>
+                <div class="price-row">
+                    <span>Delivery Fee</span>
+                    <span>$2.00</span>
+                </div>
+                <div class="price-row">
+                    <span>Tax (10%)</span>
+                    <span>$3.30</span>
+                </div>
+                <hr>
+                <div class="price-row total">
+                    <span><strong>Total</strong></span>
+                    <span><strong>$38.27</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="payment-methods">
+            <h2><i class="fa-solid fa-credit-card"></i> Payment Method</h2>
+
+            <div class="payment-options">
+
+                <div class="payment-option active" data-method="card">
+                    <input type="radio" name="payment" id="card" checked>
+                    <label for="card">
+                        <i class="fa-solid fa-credit-card"></i>
+                        <span>Credit/Debit Card</span>
+                    </label>
+                </div>
+
+                <div class="payment-option" data-method="momo">
+                    <input type="radio" name="payment" id="momo">
+                    <label for="momo">
+                        <i class="fa-solid fa-mobile-screen-button"></i>
+                        <span>Mobile Money (Momo)</span>
+                    </label>
+                </div>
+
+                <div class="payment-option" data-method="paypal">
+                    <input type="radio" name="payment" id="paypal">
+                    <label for="paypal">
+                        <i class="fa-brands fa-paypal"></i>
+                        <span>PayPal</span>
+                    </label>
+                </div>
+
+                <div class="payment-option" data-method="applepay">
+                    <input type="radio" name="payment" id="applepay">
+                    <label for="applepay">
+                        <i class="fa-brands fa-apple-pay"></i>
+                        <span>Apple Pay</span>
+                    </label>
+                </div>
+
+                <div class="payment-option" data-method="cash">
+                    <input type="radio" name="payment" id="cash">
+                    <label for="cash">
+                        <i class="fa-solid fa-money-bill-wave"></i>
+                        <span>Cash on Delivery</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="payment-form active" id="card-form">
+                <h3>Card Details</h3>
+                <form>
+                    <div class="form-group">
+                        <label>Card Number</label>
+                        <input type="text" placeholder="1234 5678 9012 3456" maxlength="19">
+                        <div class="card-icons">
+                            <i class="fa-brands fa-cc-visa"></i>
+                            <i class="fa-brands fa-cc-mastercard"></i>
+                            <i class="fa-brands fa-cc-amex"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Expiry Date</label>
+                            <input type="text" placeholder="MM/YY" maxlength="5">
+                        </div>
+                        <div class="form-group">
+                            <label>CVV</label>
+                            <input type="text" placeholder="123" maxlength="3">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Cardholder Name</label>
+                        <input type="text" placeholder="John Doe">
+                    </div>
+
+                    <button type="submit" class="pay-button">
+                        <i class="fa-solid fa-lock"></i> Pay $38.27
+                    </button>
+                </form>
+            </div>
+
+            <div class="payment-form" id="momo-form">
+                <h3>Mobile Money Details</h3>
+                <form>
+                    <div class="form-group">
+                        <label>Select Mobile Operator</label>
+                        <select>
+                            <option value="" disabled selected>Choose Operator</option>
+                            <option value="mtn">MTN Mobile Money</option>
+                            <option value="vodafone">Vodafone Cash</option>
+                            <option value="airtel-tigo">AirtelTigo Money</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Mobile Number</label>
+                        <input type="tel" placeholder="e.g., 055 123 4567" maxlength="10">
+                    </div>
+                    <p class="momo-info-text">
+                        A payment prompt will be sent to your mobile phone for authorization.
+                    </p>
+                    <button type="submit" class="pay-button momo-btn">
+                        <i class="fa-solid fa-mobile-screen-button"></i> Initiate Momo Payment
+                    </button>
+                </form>
+            </div>
+
+
+            <div class="payment-form" id="paypal-form">
+                <h3>PayPal Payment</h3>
+                <div class="paypal-info">
+                    <i class="fa-brands fa-paypal"></i>
+                    <p>You will be redirected to PayPal to complete your payment securely.</p>
+                    <button class="pay-button paypal-btn">
+                        Continue to PayPal
+                    </button>
+                </div>
+            </div>
+
+            <div class="payment-form" id="applepay-form">
+                <h3>Apple Pay</h3>
+                <div class="applepay-info">
+                    <i class="fa-brands fa-apple-pay"></i>
+                    <p>Pay securely using your Apple device.</p>
+                    <button class="pay-button apple-btn">
+                        <i class="fa-brands fa-apple"></i> Pay with Apple Pay
+                    </button>
+                </div>
+            </div>
+
+            <div class="payment-form" id="cash-form">
+                <h3>Cash on Delivery</h3>
+                <div class="cash-info">
+                    <i class="fa-solid fa-money-bill-wave"></i>
+                    <p>Pay with cash when your order arrives. Please have exact change ready.</p>
+                    <button class="pay-button cash-btn">
+                        Confirm Order
+                    </button>
+                </div>
+            </div>
+
+            <div class="security-info">
+                <i class="fa-solid fa-shield-halved"></i>
+                <p>Your payment information is secure and encrypted</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Payment method switching
+        const paymentOptions = document.querySelectorAll('.payment-option');
+        const paymentForms = document.querySelectorAll('.payment-form');
+
+        paymentOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                // Remove active class from all options
+                paymentOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+
+                // Check the radio button
+                const radio = option.querySelector('input[type="radio"]');
+                radio.checked = true;
+
+                // Show corresponding form
+                const method = option.dataset.method;
+                paymentForms.forEach(form => form.classList.remove('active'));
+                // Make sure the ID matches the data-method: e.g., 'momo-form'
+                document.getElementById(`${method}-form`).classList.add('active');
+            });
+        });
+
+        // Card number formatting
+        const cardInput = document.querySelector('#card-form input[placeholder="1234 5678 9012 3456"]');
+        if (cardInput) {
+            cardInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\s/g, '');
+                let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+                e.target.value = formattedValue;
+            });
+        }
+
+        // Expiry date formatting
+        const expiryInput = document.querySelector('#card-form input[placeholder="MM/YY"]');
+        if (expiryInput) {
+            expiryInput.addEventListener('input', (e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.length >= 2) {
+                    value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                }
+                e.target.value = value;
+            });
+        }
+
+        // Form submissions
+        document.querySelectorAll('.pay-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('Payment processed! Order confirmed. 🎉');
+                // In a real application, you would handle the payment and then redirect.
+                // window.location.href = "{% url 'homepage' %}";
+            });
+        });
+    </script>
+
+</body>
+</html>

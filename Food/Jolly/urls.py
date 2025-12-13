@@ -6,5 +6,6 @@ urlpatterns = [
     path('menu/', views.menu, name='menu'),
     path('contact/', views.contact, name='contact'),
     path('mobile/', views.mobile, name='mobile'),
-
+    # New stuff
+    path('payment/', views.payment, name='payment'),
 ]
