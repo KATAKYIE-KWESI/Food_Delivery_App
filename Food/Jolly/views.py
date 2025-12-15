@@ -208,7 +208,7 @@ def add_to_cart(request):
 
 @require_POST
 def update_cart_item(request):
-    """Update cart item quantity"""
+   # Update cart item quantity
     try:
         data = json.loads(request.body)
         item_id = data.get('item_id')
@@ -229,7 +229,7 @@ def update_cart_item(request):
 
 @require_POST
 def remove_from_cart(request):
-    """Remove item from cart"""
+    #Remove item from cart
     try:
         data = json.loads(request.body)
         item_id = data.get('item_id')
@@ -243,7 +243,7 @@ def remove_from_cart(request):
 
 
 def get_cart_count(request):
-    """Get cart count for navbar"""
+    #Get cart count for navbar
     if request.user.is_authenticated:
         count = sum(item.quantity for item in CartItem.objects.filter(user=request.user))
     else:
@@ -260,7 +260,7 @@ def get_cart_count(request):
 
 @require_POST
 def signup_view(request):
-    """Handle user signup via AJAX"""
+    #Handle user signup via AJAX
     try:
         data = json.loads(request.body)
         username = data.get('username')
@@ -321,7 +321,7 @@ def signup_view(request):
 
 @require_POST
 def login_view(request):
-    """Handle user login via AJAX"""
+    #Handle user login via AJAX
     try:
         data = json.loads(request.body)
         username = data.get('username')
