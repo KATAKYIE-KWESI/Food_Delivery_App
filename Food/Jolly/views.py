@@ -1,3 +1,4 @@
+import datetime
 from itertools import groupby
 from operator import itemgetter
 from django.views.decorators.http import require_POST
@@ -8,8 +9,9 @@ from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 import json
-
-
+from django.shortcuts import render
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
 
 
 from django.shortcuts import render
@@ -371,3 +373,60 @@ def logout_view(request):
     logout(request)
     return redirect('homepage')  # Redirect to homepage after logout
 
+def terms(request):
+    return render(request, 'terms.html')
+
+
+# ============= PAYMENT VIEWS (Paystack Integration) =============
+
+DELIVERY_FEE = 2.00
+TAX_RATE = 0.10  # 10% Tax
+
+
+def calculate_order_total(request):
+    """Calculates the dynamic total amount from the user's cart."""
+
+    if request.user.is_authenticated:
+        cart_items = CartItem.objects.filter(user=request.user)
+    else:
+        session_key = request.session.session_key
+        cart_items = CartItem.objects.filter(session_key=session_key)
+
+    # 1. Calculate Subtotal
+    subtotal = sum(item.get_total_price() for item in cart_items)
+
+    # 2. Calculate Tax
+    tax_amount = subtotal * TAX_RATE
+
+    # 3. Calculate Grand Total
+    grand_total = subtotal + tax_amount + DELIVERY_FEE
+
+    # 4. Paystack requires amount in cents/kobo (integer)
+    amount_in_cents = int(grand_total * 100)
+
+    return grand_total, amount_in_cents
+
+
+@login_required
+def payment_view(request):
+    # 1. Calculate the actual dynamic total amount
+    amount_in_dollars, amount_in_cents = calculate_order_total(request)
+
+    # Check if cart is empty before proceeding
+    if amount_in_cents == 0:
+        return redirect('cart')  # Redirect to cart if nothing to pay for
+
+    # 2. Collect necessary data for Paystack
+    context = {
+        # Keys for Paystack
+        'PAYSTACK_PUBLIC_KEY': settings.PAYSTACK_PUBLIC_KEY,
+        'AMOUNT_IN_CENTS': amount_in_cents,
+        'CUSTOMER_EMAIL': request.user.email,
+        # Correctly using datetime.datetime.now()
+        'REFERENCE': f"JF-{request.user.id}-{amount_in_cents}-{datetime.datetime.now().timestamp()}",
+
+        # Keys for Display in template (optional, but good for dynamic buttons)
+        'AMOUNT_IN_DOLLARS': f"{amount_in_dollars:.2f}",
+    }
+
+    return render(request, 'payment.html', context)
