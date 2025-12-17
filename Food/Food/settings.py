@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+from decouple import config
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-b-r=zf7b#la69ivu&&jmy62&r4-t724vu$@$@mgwydinw@j&3m'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -131,8 +132,9 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 # Replace with your actual Brevo SMTP login credentials
-EMAIL_HOST_USER = "9d14a7001@smtp-brevo.com"
-EMAIL_HOST_PASSWORD = "bc7QVEa1dfCUq3W2"
+
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 DEFAULT_FROM_EMAIL = "KatCompany <kwabby950@gmail.com>"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
