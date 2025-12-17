@@ -257,66 +257,59 @@ def get_cart_count(request):
 
 
 # ============= AUTHENTICATION VIEWS =============
+from django.contrib.auth import login
+from django.contrib.auth.models import User
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+import json
+
+from .models import Profile, CartItem
+from .utils.sms import send_sms
+
 
 @require_POST
 def signup_view(request):
-    #Handle user signup via AJAX
     try:
         data = json.loads(request.body)
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
+        phone = data.get('phone')  # collect phone from frontend
 
         # Validate input
-        if not username or not email or not password:
-            return JsonResponse({
-                'success': False,
-                'error': 'All fields are required'
-            })
+        if not username or not email or not password or not phone:
+            return JsonResponse({'success': False, 'error': 'All fields are required'})
 
-        # Check if username already exists
+        # Check if username/email exists
         if User.objects.filter(username=username).exists():
-            return JsonResponse({
-                'success': False,
-                'error': 'Username already exists'
-            })
-
-        # Check if email already exists
+            return JsonResponse({'success': False, 'error': 'Username already exists'})
         if User.objects.filter(email=email).exists():
-            return JsonResponse({
-                'success': False,
-                'error': 'Email already registered'
-            })
+            return JsonResponse({'success': False, 'error': 'Email already registered'})
 
-        # Create new user
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=password
-        )
+        # Create user
+        user = User.objects.create_user(username=username, email=email, password=password)
 
-        # Automatically log the user in after signup
+        # Create profile and save phone
+        profile, _ = Profile.objects.get_or_create(user=user)
+        profile.phone_number = phone
+        profile.save()
+
+        # Log user in
         login(request, user)
 
-        # Transfer cart items from session to user account (if any)
+        # Transfer guest cart items to user
         session_key = request.session.session_key
         if session_key:
-            from .models import CartItem  # Import your CartItem model
-            CartItem.objects.filter(session_key=session_key).update(
-                user=user,
-                session_key=None
-            )
+            CartItem.objects.filter(session_key=session_key).update(user=user, session_key=None)
 
-        return JsonResponse({
-            'success': True,
-            'message': 'Account created successfully! Welcome to JollyFoods!'
-        })
+        # Send welcome SMS
+        message = f"Welcome {username} to JollyFoods! 🍔 Enjoy your first order!"
+        send_sms(phone, message)
+
+        return JsonResponse({'success': True, 'message': 'Account created successfully! SMS sent.'})
 
     except Exception as e:
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=400)
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 
 @require_POST

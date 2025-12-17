@@ -484,6 +484,7 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
     const loginFormSubmit = document.getElementById('loginFormSubmit');
     const signupFormSubmit = document.getElementById('signupFormSubmit');
     const openAuthModalBtn = document.getElementById('openAuthModal');
+    const phone = document.getElementById('signupPhone').value;
 
     // Get CSRF token
     function getCookie(name) {
@@ -594,58 +595,60 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
         }
     });
 
-    // Handle signup form submission
     signupFormSubmit.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    e.preventDefault();
 
-        const username = document.getElementById('signupUsername').value;
-        const email = document.getElementById('signupEmail').value;
-        const password = document.getElementById('signupPassword').value;
-        const confirmPassword = document.getElementById('signupConfirmPassword').value;
-        const submitBtn = signupFormSubmit.querySelector('.auth-btn');
+    const username = document.getElementById('signupUsername').value;
+    const email = document.getElementById('signupEmail').value;
+    const password = document.getElementById('signupPassword').value;
+    const confirmPassword = document.getElementById('signupConfirmPassword').value;
+    const phone = document.getElementById('signupPhone').value; // <-- add this
+    const submitBtn = signupFormSubmit.querySelector('.auth-btn');
 
-        if (password !== confirmPassword) {
-            showMessage(signupForm, 'Passwords do not match!', true);
-            return;
+    if (password !== confirmPassword) {
+        showMessage(signupForm, 'Passwords do not match!', true);
+        return;
+    }
+
+    if (password.length < 6) {
+        showMessage(signupForm, 'Password must be at least 6 characters!', true);
+        return;
+    }
+
+    submitBtn.classList.add('loading');
+
+    try {
+        const response = await fetch('/signup/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({
+                username: username,
+                email: email,
+                password: password,
+                phone: phone // <-- add comma and use defined variable
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showMessage(signupForm, data.message, false);
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showMessage(signupForm, data.error, true);
         }
+    } catch (error) {
+        showMessage(signupForm, 'An error occurred. Please try again.', true);
+    } finally {
+        submitBtn.classList.remove('loading');
+    }
+});
 
-        if (password.length < 6) {
-            showMessage(signupForm, 'Password must be at least 6 characters!', true);
-            return;
-        }
-
-        submitBtn.classList.add('loading');
-
-        try {
-            const response = await fetch('/signup/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify({
-                    username: username,
-                    email: email,
-                    password: password
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                showMessage(signupForm, data.message, false);
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-            } else {
-                showMessage(signupForm, data.error, true);
-            }
-        } catch (error) {
-            showMessage(signupForm, 'An error occurred. Please try again.', true);
-        } finally {
-            submitBtn.classList.remove('loading');
-        }
-    });
 
     // Close modal on escape key
     document.addEventListener('keydown', (e) => {

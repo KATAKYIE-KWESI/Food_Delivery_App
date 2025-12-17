@@ -122,7 +122,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 
 
-# settings.py
+# Brevo/Sendinblue API key for SMS
+BREVO_API_KEY = "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"
+
 
 # --- Email Configuration (Using Brevo/Sendinblue) ---
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
