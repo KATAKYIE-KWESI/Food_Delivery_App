@@ -122,10 +122,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 
 
-# Brevo/Sendinblue API key for SMS
-BREVO_API_KEY = "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"
-
-
 # --- Email Configuration (Using Brevo/Sendinblue) ---
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp-relay.brevo.com"
@@ -138,7 +134,3 @@ EMAIL_HOST_PASSWORD = "bc7QVEa1dfCUq3W2"
 
 DEFAULT_FROM_EMAIL = "KatCompany <kwabby950@gmail.com>"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-
-# --- Paystack Configuration (Dummy Keys for Testing) ---
-PAYSTACK_SECRET_KEY = 'sk_test_c094614f162e2dc0c3556a3eeaf6ebde1520ffb4' # Dummy secret key
-PAYSTACK_PUBLIC_KEY = 'pk_test_0721a3111d9464796d33dc473672b079b9a3bcd4' # Dummy public key (used in JavaScript)
