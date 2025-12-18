@@ -237,7 +237,7 @@ def remove_from_cart(request):
         cart_item = CartItem.objects.get(id=item_id)
         cart_item.delete()
 
-        return JsonResponse({'success': True})
+        return JsonResponse({'success': True ,'message': 'Dish removed from cart!'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -337,11 +337,8 @@ def login_view(request):
             # Transfer cart items from session to user account (if any)
             session_key = request.session.session_key
             if session_key:
-                from .models import CartItem
-                CartItem.objects.filter(session_key=session_key).update(
-                    user=user,
-                    session_key=None
-                )
+
+                CartItem.objects.filter(session_key=session_key).update( user=user,session_key=None )
 
             return JsonResponse({
                 'success': True,
@@ -362,7 +359,6 @@ def login_view(request):
 
 
 def logout_view(request):
-
     logout(request)
     return redirect('homepage')  # Redirect to homepage after logout
 

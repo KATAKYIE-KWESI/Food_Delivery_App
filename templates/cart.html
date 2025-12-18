@@ -107,7 +107,7 @@
 </div>
 
 <script>
-// Get CSRF token
+//  Get CSRF token
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -145,7 +145,8 @@ function updateCartTotals() {
     document.getElementById('total').textContent = `$${total.toFixed(2)}`;
 }
 
-// Update quantity
+     // Update quantity
+
 document.querySelectorAll('.plus-btn, .minus-btn').forEach(btn => {
     btn.addEventListener('click', async function() {
         const itemId = this.dataset.itemId;
@@ -168,6 +169,7 @@ document.querySelectorAll('.plus-btn, .minus-btn').forEach(btn => {
         updateCartTotals();
 
         // Update on server
+
         await fetch('/cart/update/', {
             method: 'POST',
             headers: {
@@ -183,6 +185,7 @@ document.querySelectorAll('.plus-btn, .minus-btn').forEach(btn => {
 });
 
 // Remove item
+
 document.querySelectorAll('.remove-btn').forEach(btn => {
     btn.addEventListener('click', async function() {
         if (confirm('Remove this item from cart?')) {
@@ -202,15 +205,60 @@ async function removeItem(itemId) {
         body: JSON.stringify({ item_id: itemId })
     });
 
+
     if (response.ok) {
-        location.reload();
+
+        const data = await response.json();
+        if (data.success) {
+            // Show success message
+            showNotification(data.message);
+        }
     }
+
 }
 
 // Checkout button
 document.querySelector('.checkout-btn')?.addEventListener('click', function() {
     window.location.href = "{% url 'payment' %}";
 });
+
+    // Show notification
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 15px 25px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
 </script>
 
 </body>

@@ -396,7 +396,8 @@ document.querySelectorAll('.quantity-selector').forEach(selector => {
     }, true);
 });
 
-// Add to cart function
+ // Add to cart function
+
 async function addToCart(name, price, image, qty) {
     try {
         const response = await fetch('/cart/add/', {
