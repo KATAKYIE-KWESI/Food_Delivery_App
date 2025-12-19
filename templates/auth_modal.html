@@ -6,6 +6,9 @@
             <i class="fa-solid fa-xmark"></i>
         </button>
 
+        <!-- CSRF hidden form to ensure cookie is set -->
+        <form style="display:none">{% csrf_token %}</form>
+
         <div class="auth-container">
             <!-- Login Form -->
             <div class="auth-form login-form active" id="loginForm">
@@ -23,7 +26,6 @@
                         <i class="fa-solid fa-user"></i>
                         <input type="text" id="loginUsername" placeholder="Username" required>
                     </div>
-
                     <div class="form-group">
                         <i class="fa-solid fa-lock"></i>
                         <input type="password" id="loginPassword" placeholder="Password" required>
@@ -42,9 +44,7 @@
                         <i class="fa-solid fa-arrow-right"></i>
                     </button>
 
-                    <div class="auth-divider">
-                        <span>or continue with</span>
-                    </div>
+                    <div class="auth-divider"><span>or continue with</span></div>
 
                     <div class="social-login">
                         <button type="button" class="social-btn google">
@@ -59,8 +59,7 @@
                     </div>
 
                     <p class="auth-switch">
-                        Don't have an account?
-                        <a href="#" id="showSignup">Sign up</a>
+                        Don't have an account? <a href="#" id="showSignup">Sign up</a>
                     </p>
                 </form>
             </div>
@@ -81,23 +80,18 @@
                         <i class="fa-solid fa-user"></i>
                         <input type="text" id="signupUsername" placeholder="Username" required>
                     </div>
-
                     <div class="form-group">
                         <i class="fa-solid fa-envelope"></i>
                         <input type="email" id="signupEmail" placeholder="Email" required>
                     </div>
-
-                                  <!-- NEW PHONE NUMBER FIELD -->
                     <div class="form-group">
                         <i class="fa-solid fa-phone"></i>
                         <input type="tel" id="signupPhone" placeholder="Phone Number" required pattern="[0-9]{10,15}">
                     </div>
-
                     <div class="form-group">
                         <i class="fa-solid fa-lock"></i>
                         <input type="password" id="signupPassword" placeholder="Password" required>
                     </div>
-
                     <div class="form-group">
                         <i class="fa-solid fa-lock"></i>
                         <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" required>
@@ -113,9 +107,7 @@
                         <i class="fa-solid fa-arrow-right"></i>
                     </button>
 
-                    <div class="auth-divider">
-                        <span>or sign up with</span>
-                    </div>
+                    <div class="auth-divider"><span>or sign up with</span></div>
 
                     <div class="social-login">
                         <button type="button" class="social-btn google">
@@ -130,8 +122,7 @@
                     </div>
 
                     <p class="auth-switch">
-                        Already have an account?
-                        <a href="#" id="showLogin">Sign in</a>
+                        Already have an account? <a href="#" id="showLogin">Sign in</a>
                     </p>
                 </form>
             </div>
