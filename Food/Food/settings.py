@@ -79,6 +79,12 @@ TEMPLATES = [
 # --------------------------
 WSGI_APPLICATION = 'Food.wsgi.application'
 
+# settings.py
+CSRF_TRUSTED_ORIGINS = [
+    'https://food-delivery-app-9-ogir.onrender.com'
+]
+
+
 # --------------------------
 # Database
 # --------------------------
