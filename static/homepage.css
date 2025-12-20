@@ -911,111 +911,97 @@ html {
 /* ============================================================
    SPACING & ALIGNMENT OPTIMIZATION
    ============================================================ */
+/* --- Paste this at the absolute bottom of homepage.css --- */
 
-/* 1. Open up the page (less compact) */
+/* 1. Global Page Opening */
 body {
-    width: 90%; /* Increased from 80% to use more screen space */
-    max-width: 1400px; /* Prevents it from getting too wide on huge monitors */
+    width: 90% !important;
+    max-width: 1400px;
+    margin: auto;
 }
 
-/* 2. Fix Navbar: Logo, Cart, and Sign-in on one line */
 @media (max-width: 768px) {
+    /* 2. Navbar: Logo, Cart, and Sign-in on ONE line */
     .navbar {
-        display: flex;
-        flex-direction: row; /* Force horizontal layout */
-        justify-content: space-between;
-        align-items: center;
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
         padding: 20px 0;
     }
 
     .navbar-menu {
-        display: none; /* Keep menu hidden to save space for the logo and buttons */
+        display: none !important; /* Hide links to keep row clean */
     }
 
     .logo {
-        font-size: 24px; /* Slightly smaller to fit everything on one line */
+        font-size: 22px;
         margin-left: 0;
     }
 
     .hamburger {
-        gap: 12px; /* Closer icons to save horizontal space */
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        gap: 10px;
     }
 
-    .hamburger button, .user-btn {
-        padding: 8px 15px; /* Compact button */
-        font-size: 14px;
-        white-space: nowrap; /* Prevents "Sign In" from breaking into two lines */
+    /* 3. Explore Menu Text: Left aligned, 3.5/4 width */
+    .explore-menu-text {
+        max-width: 87.5% !important; /* This is 3.5 divided by 4 */
+        text-align: left !important;
+        margin-left: 0 !important;
+        font-size: 16px;
     }
 
-    /* 3. Header Spacing */
-    .header {
-        margin: 20px auto 40px; /* More space below the header */
-        height: 55vw; /* Slightly taller */
-    }
-
-    .header-contents {
-        gap: 15px;
-        bottom: 15%;
-    }
-
-    /* 4. Food Grid: TWO ITEMS SIDE-BY-SIDE */
+    /* 4. FOUR FOODS HORIZONTAL SCROLL */
     .food-display-list {
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* Force exactly two columns */
-        gap: 15px; /* Space between the two columns */
-        row-gap: 30px; /* Space between rows */
+        display: flex !important;
+        flex-direction: row !important;
+        overflow-x: auto !important;
+        gap: 15px;
+        padding: 10px 0 20px 0;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
     }
 
     .food-item {
-        padding: 10px; /* Less internal padding so content fits */
+        flex: 0 0 22%; /* Fits roughly 4 items with gaps */
+        min-width: 150px; /* Keeps them from getting too squashed */
     }
 
+    /* Hide scrollbar for aesthetics */
+    .food-display-list::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* 5. Adjusting card contents for the smaller 4-column size */
     .food-item img {
-        height: 140px; /* Shorter images so cards aren't too long */
+        height: 110px;
+        object-fit: cover;
     }
 
     .food-header h3 {
-        font-size: 1rem; /* Smaller titles to fit side-by-side */
-    }
-
-    .food-price {
         font-size: 0.9rem;
     }
 
     .food-description {
-        font-size: 0.8rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 2; /* Limits description to 2 lines so cards stay even */
-        -webkit-box-orient: vertical;
-        overflow: hidden;
+        display: none; /* Hide description on mobile to keep 4-column grid clean */
     }
 
-    /* 5. Quantity Selector Scaling */
-    .quantity-selector .add-btn,
-    .quantity-selector .counter button {
-        width: 32px;
-        height: 32px;
-        font-size: 16px;
-    }
-
-    /* 6. Footer Layout */
-    .footer-container {
-        padding: 0 5%;
-        gap: 30px;
+    /* 6. Header Spacing */
+    .header {
+        margin: 20px auto 40px;
+        height: 55vw;
     }
 }
 
 /* Extra small phone tweaks */
 @media (max-width: 400px) {
     .logo {
-        font-size: 20px;
+        font-size: 18px;
     }
-
-    .hamburger {
-        gap: 8px;
-    }
-
-    .food-display-list {
-        gap: 10px; /* Tighter gap for very small screens */
+    .food-item {
+        flex: 0 0 40%; /* On tiny phones, 4 is too many; shows 2.5 items instead */
     }
 }
