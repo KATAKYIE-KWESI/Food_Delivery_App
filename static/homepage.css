@@ -908,131 +908,114 @@ html {
 /* ============================================================
    RESPONSIVE OVERRIDES FOR SMALLER DEVICES
    ============================================================ */
+/* ============================================================
+   SPACING & ALIGNMENT OPTIMIZATION
+   ============================================================ */
 
+/* 1. Open up the page (less compact) */
+body {
+    width: 90%; /* Increased from 80% to use more screen space */
+    max-width: 1400px; /* Prevents it from getting too wide on huge monitors */
+}
+
+/* 2. Fix Navbar: Logo, Cart, and Sign-in on one line */
 @media (max-width: 768px) {
-    /* 1. Body & Container */
-    body {
-        width: 95%; /* Use more of the screen width on mobile */
-    }
-
-    /* 2. Navbar & Hamburger Section */
     .navbar {
-        padding: 15px 10px;
-        flex-wrap: wrap;
+        display: flex;
+        flex-direction: row; /* Force horizontal layout */
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0;
     }
 
     .navbar-menu {
-        display: none; /* Hide the main menu links; common for mobile */
+        display: none; /* Keep menu hidden to save space for the logo and buttons */
     }
 
     .logo {
-        font-size: 30px; /* Slightly smaller for mobile branding */
+        font-size: 24px; /* Slightly smaller to fit everything on one line */
+        margin-left: 0;
+    }
+
+    .hamburger {
+        gap: 12px; /* Closer icons to save horizontal space */
     }
 
     .hamburger button, .user-btn {
-        font-size: 18px; /* Make the sign-in/user button bigger */
-        padding: 10px 20px;
+        padding: 8px 15px; /* Compact button */
+        font-size: 14px;
+        white-space: nowrap; /* Prevents "Sign In" from breaking into two lines */
     }
 
-    /* 3. Header (Micro-text Fix) */
+    /* 3. Header Spacing */
     .header {
-        height: 60vh; /* Make the banner taller on mobile */
-        background-size: cover;
-        margin: 15px auto;
+        margin: 20px auto 40px; /* More space below the header */
+        height: 55vw; /* Slightly taller */
     }
 
     .header-contents {
-        max-width: 90%; /* Let text breathe */
-        left: 5%;
+        gap: 15px;
         bottom: 15%;
-        gap: 20px;
     }
 
-    .header-contents h2 {
-        font-size: 32px; /* Large, readable heading */
-        font-weight: 600;
-    }
-
-    .header-contents p {
-        font-size: 16px; /* Increased from tiny 1vw */
-        line-height: 1.4;
-    }
-
-    .header-contents button {
-        font-size: 18px;
-        padding: 15px 35px; /* Larger tap area */
-    }
-
-    /* 4. Explore Menu */
-    .explore-menu-text {
-        max-width: 100%;
-        font-size: 18px;
-    }
-
-    .explore-menu-list-item p {
-        font-size: 18px; /* Bigger category names */
-    }
-
-    /* 5. Food Display Grid */
+    /* 4. Food Grid: TWO ITEMS SIDE-BY-SIDE */
     .food-display-list {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Switch to 1 or 2 columns */
-        gap: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr; /* Force exactly two columns */
+        gap: 15px; /* Space between the two columns */
+        row-gap: 30px; /* Space between rows */
     }
 
     .food-item {
-        padding: 20px;
-    }
-
-    .food-header h3 {
-        font-size: 1.4rem; /* Larger dish titles */
-    }
-
-    .food-description {
-        font-size: 1.1rem; /* More readable description */
-    }
-
-    .food-price {
-        font-size: 1.3rem;
-    }
-
-    /* 6. Quantity Selector (Thumb-friendly) */
-    .quantity-selector .add-btn,
-    .quantity-selector .counter button {
-        width: 45px;
-        height: 45px;
-        font-size: 20px;
-    }
-
-    .quantity-selector .quantity {
-        font-size: 18px;
-        padding: 0 10px;
-    }
-
-    /* 7. Footer Optimization */
-    .footer-container {
-        padding: 0 20px 40px;
-    }
-
-    .footer-title {
-        font-size: 22px; /* Bigger titles */
-    }
-
-    .footer-links a, .footer-description, .contact-info p {
-        font-size: 16px; /* Base font size boost */
-    }
-}
-
-@media (max-width: 480px) {
-    /* Extra tiny screens like iPhone SE */
-    .header-contents h2 {
-        font-size: 28px;
-    }
-
-    .food-display-list {
-        grid-template-columns: 1fr; /* Strictly 1 column */
+        padding: 10px; /* Less internal padding so content fits */
     }
 
     .food-item img {
-        height: 250px; /* Make images stand out */
+        height: 140px; /* Shorter images so cards aren't too long */
+    }
+
+    .food-header h3 {
+        font-size: 1rem; /* Smaller titles to fit side-by-side */
+    }
+
+    .food-price {
+        font-size: 0.9rem;
+    }
+
+    .food-description {
+        font-size: 0.8rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* Limits description to 2 lines so cards stay even */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* 5. Quantity Selector Scaling */
+    .quantity-selector .add-btn,
+    .quantity-selector .counter button {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    /* 6. Footer Layout */
+    .footer-container {
+        padding: 0 5%;
+        gap: 30px;
+    }
+}
+
+/* Extra small phone tweaks */
+@media (max-width: 400px) {
+    .logo {
+        font-size: 20px;
+    }
+
+    .hamburger {
+        gap: 8px;
+    }
+
+    .food-display-list {
+        gap: 10px; /* Tighter gap for very small screens */
     }
 }
