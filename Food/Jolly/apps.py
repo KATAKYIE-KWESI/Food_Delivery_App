@@ -10,4 +10,5 @@ class JollyConfig(AppConfig):
     # The crucial fix: This runs ONLY after all apps and models are loaded.
     def ready(self):
         # We use the uppercase 'Jolly' to match your module structure
-        import Jolly.signals
+       # import Jolly.signals
+       pass
