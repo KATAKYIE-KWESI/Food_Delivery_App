@@ -911,17 +911,10 @@ html {
 /* ============================================================
    SPACING & ALIGNMENT OPTIMIZATION
    ============================================================ */
-/* --- Paste this at the absolute bottom of homepage.css --- */
-
-/* 1. Global Page Opening */
-body {
-    width: 90% !important;
-    max-width: 1400px;
-    margin: auto;
-}
+/* --- Final Optimized Mobile CSS --- */
 
 @media (max-width: 768px) {
-    /* 2. Navbar: Logo, Cart, and Sign-in on ONE line */
+    /* 1. Navbar: Logo, Cart, and Sign-in on ONE line */
     .navbar {
         display: flex !important;
         flex-direction: row !important;
@@ -931,7 +924,7 @@ body {
     }
 
     .navbar-menu {
-        display: none !important; /* Hide links to keep row clean */
+        display: none !important;
     }
 
     .logo {
@@ -946,62 +939,83 @@ body {
         gap: 10px;
     }
 
-    /* 3. Explore Menu Text: Left aligned, 3.5/4 width */
+    /* 2. Explore Menu Text: Left aligned, 3.5/4 width */
     .explore-menu-text {
-        max-width: 87.5% !important; /* This is 3.5 divided by 4 */
+        max-width: 87.5% !important;
         text-align: left !important;
         margin-left: 0 !important;
         font-size: 16px;
     }
 
-    /* 4. FOUR FOODS HORIZONTAL SCROLL */
+    /* 3. FOUR FOODS HORIZONTAL SCROLL WITH SNAP */
     .food-display-list {
         display: flex !important;
         flex-direction: row !important;
+        align-items: stretch !important; /* Forces equal height for all boxes */
         overflow-x: auto !important;
+        scroll-snap-type: x mandatory; /* The "Snap" effect */
         gap: 15px;
-        padding: 10px 0 20px 0;
+        padding: 10px 5px 25px 5px;
         scroll-behavior: smooth;
         -webkit-overflow-scrolling: touch;
     }
 
+    /* 4. Food Item Box Logic */
     .food-item {
-        flex: 0 0 22%; /* Fits roughly 4 items with gaps */
-        min-width: 150px; /* Keeps them from getting too squashed */
+        flex: 0 0 22% !important; /* Fits 4 items */
+        min-width: 165px;
+        scroll-snap-align: start; /* Where the snap happens */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; /* Keeps top and bottom contents separated */
+        padding: 12px;
+        background: #fff;
+        border-radius: 15px;
     }
 
-    /* Hide scrollbar for aesthetics */
-    .food-display-list::-webkit-scrollbar {
-        display: none;
-    }
-
-    /* 5. Adjusting card contents for the smaller 4-column size */
-    .food-item img {
-        height: 110px;
-        object-fit: cover;
+    /* 5. Keep Stars and Title inside */
+    .food-header {
+        display: flex;
+        flex-direction: column; /* Stacked to stay inside the box */
+        align-items: flex-start;
+        gap: 5px;
+        margin-top: 10px;
+        min-height: 65px; /* Ensures boxes stay the same size even with short titles */
     }
 
     .food-header h3 {
         font-size: 0.9rem;
+        line-height: 1.2;
     }
 
+    .rating {
+        font-size: 10px;
+        gap: 2px;
+        color: gold;
+    }
+
+    .food-item img {
+        height: 110px;
+        width: 100%;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    /* Hide description to keep look clean */
     .food-description {
-        display: none; /* Hide description on mobile to keep 4-column grid clean */
+        display: none;
     }
 
-    /* 6. Header Spacing */
-    .header {
-        margin: 20px auto 40px;
-        height: 55vw;
+    .food-price {
+        font-size: 1rem;
+        font-weight: bold;
+        color: tomato;
+        margin-top: auto; /* Pushes price to the bottom */
+    }
+
+    /* Hide Scrollbar */
+    .food-display-list::-webkit-scrollbar {
+        display: none;
     }
 }
 
-/* Extra small phone tweaks */
-@media (max-width: 400px) {
-    .logo {
-        font-size: 18px;
-    }
-    .food-item {
-        flex: 0 0 40%; /* On tiny phones, 4 is too many; shows 2.5 items instead */
-    }
-}
