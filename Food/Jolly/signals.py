@@ -14,7 +14,7 @@ def handle_new_user_signup(sender, instance, created, **kwargs):
 
     # Triggers the welcome email ONLY when the User object is first created (signed up).
 
-   #if created:
+   if created:
         # instance is the User object that was just saved
         send_welcome_email(instance)
 
