@@ -41,7 +41,7 @@ def send_welcome_email(user):
             settings.DEFAULT_FROM_EMAIL,
             recipient_list,
             html_message=html_message,  # Send the styled HTML version
-            fail_silently=False,
+            fail_silently=True,
         )
         print(f"SUCCESS: Welcome email sent to {user.email}")
     except Exception as e:
