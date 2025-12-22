@@ -89,20 +89,17 @@
    </div>
 
 
-    <div class="food-display" id="food-display">
+   <div class="food-display" id="food-display">
     <h2>Top dishes near you</h2>
 
     {% for group in grouped_foods %}
     <div id="{{ group.category|lower|cut:' ' }}-section" class="category-section">
 
-        <!-- Optional hint for mobile users -->
+        <!-- Scroll hint for mobile users -->
         <p class="scroll-hint">Swipe → to see more</p>
 
         <!-- Wrapper for scrollable food list -->
         <div class="food-display-wrapper">
-
-            <!-- Left arrow -->
-            <button class="scroll-arrow left"><i class="fa-solid fa-chevron-left"></i></button>
 
             <!-- Food items list -->
             <div class="food-display-list">
@@ -135,13 +132,11 @@
                 {% endfor %}
             </div>
 
-            <!-- Right arrow -->
-            <button class="scroll-arrow right"><i class="fa-solid fa-chevron-right"></i></button>
-
         </div>
     </div>
     {% endfor %}
 </div>
+
 
 <!--------------------------------FOOTER---------------------------------------->
 
@@ -665,162 +660,22 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
 });
 })();
 
-<!--    Script for animation scrolling-->
-(function() {
-    class ScrollRevealSystem {
-        constructor() {
-            this.elements = new Map();
-            this.windowHeight = window.innerHeight;
-            this.lastScroll = 0;
-            this.ticking = false;
-            this.init();
-        }
-
-        init() {
-            // Register elements to animate
-            this.registerElement('.explore-menu');
-            this.registerElement('.explore-menu-list');
-            this.registerElement('.food-display');
-
-            // Register all category sections and their food lists
-            document.querySelectorAll('.category-section').forEach(section => {
-                this.registerElement(section);
-                const foodList = section.querySelector('.food-display-list');
-                if (foodList) {
-                    this.registerElement(foodList);
-                }
-            });
-
-            this.registerElement('.footer');
-
-            // Event listeners
-            window.addEventListener('scroll', () => this.requestTick());
-            window.addEventListener('resize', () => {
-                this.windowHeight = window.innerHeight;
-                this.requestTick();
-            });
-
-            // Initial check
-            this.check();
-
-            // Navbar hide/show on scroll
-            this.initNavbarScroll();
-
-            // Parallax effect
-            this.initParallax();
-        }
-
-        registerElement(selector) {
-            const elements = typeof selector === 'string'
-                ? document.querySelectorAll(selector)
-                : [selector];
-
-            elements.forEach(el => {
-                if (el && !this.elements.has(el)) {
-                    this.elements.set(el, { revealed: false });
-                }
-            });
-        }
-
-        requestTick() {
-            if (!this.ticking) {
-                window.requestAnimationFrame(() => {
-                    this.check();
-                    this.ticking = false;
-                });
-                this.ticking = true;
-            }
-        }
-
-        check() {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-            this.elements.forEach((data, element) => {
-                const rect = element.getBoundingClientRect();
-                const elementTop = rect.top;
-                const elementBottom = rect.bottom;
-
-                // Element is in viewport (with 20% buffer)
-                const inView = elementTop < this.windowHeight * 0.8 && elementBottom > this.windowHeight * 0.2;
-
-                if (inView) {
-                    if (!element.classList.contains('revealed')) {
-                        element.classList.add('revealed');
-                    }
-                } else {
-                    // Remove revealed class when out of view to replay animation
-                    if (element.classList.contains('revealed')) {
-                        element.classList.remove('revealed');
-                    }
-                }
-            });
-        }
-
-        initNavbarScroll() {
-            const navbar = document.querySelector('.navbar');
-            if (!navbar) return;
-
-            window.addEventListener('scroll', () => {
-                const currentScroll = window.pageYOffset;
-
-                if (currentScroll > this.lastScroll && currentScroll > 150) {
-                    navbar.style.transform = 'translateY(-100%)';
-                } else {
-                    navbar.style.transform = 'translateY(0)';
-                }
-
-                this.lastScroll = currentScroll;
-            });
-        }
-
-        initParallax() {
-            const parallaxElements = document.querySelectorAll('.food-item img, .explore-menu-list-item img');
-            let rafId = null;
-
-            const updateParallax = () => {
-                parallaxElements.forEach(el => {
-                    const rect = el.getBoundingClientRect();
-
-                    if (rect.top < this.windowHeight && rect.bottom > 0) {
-                        const rate = (rect.top - this.windowHeight / 2) * 0.03;
-                        el.style.transform = `translateY(${rate}px)`;
-                    }
-                });
-                rafId = null;
-            };
-
-            window.addEventListener('scroll', () => {
-                if (!rafId) {
-                    rafId = requestAnimationFrame(updateParallax);
-                }
-            });
-        }
-    }
-
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            new ScrollRevealSystem();
-        });
-    } else {
-        new ScrollRevealSystem();
-    }
-})();
-
+<!--    script for scrolling food list-->
 document.querySelectorAll('.food-display-wrapper').forEach(wrapper => {
+    const hint = wrapper.querySelector('.scroll-hint');
     const list = wrapper.querySelector('.food-display-list');
-    const leftBtn = wrapper.querySelector('.scroll-arrow.left');
-    const rightBtn = wrapper.querySelector('.scroll-arrow.right');
 
-    if(leftBtn && rightBtn){
-        leftBtn.addEventListener('click', () => {
-            list.scrollBy({ left: -300, behavior: 'smooth' });
-        });
+    const updateHint = () => {
+        const maxScroll = list.scrollWidth - list.clientWidth;
+        if (list.scrollLeft >= maxScroll - 5) {
+            hint.classList.add('hide');
+        } else {
+            hint.classList.remove('hide');
+        }
+    };
 
-        rightBtn.addEventListener('click', () => {
-            list.scrollBy({ left: 300, behavior: 'smooth' });
-        });
-    }
+    list.addEventListener('scroll', updateHint);
+    updateHint();
 });
 
 

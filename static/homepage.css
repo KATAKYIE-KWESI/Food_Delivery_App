@@ -1227,51 +1227,37 @@ html {
 
 /* Scrollable food list on small screens */
 @media screen and (max-width: 768px) {
+    .food-display-wrapper {
+        overflow-x: auto;
+        scroll-behavior: smooth;
+        position: relative;
+    }
 
-  .scroll-hint {
-    display: block;
-  }
+    .food-display-list {
+        display: flex;
+        gap: 15px;
+        padding-right: 20px;
+    }
 
-  .food-display-wrapper {
-    position: relative;
-  }
+    .scroll-hint {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: rgba(255, 255, 255, 0.8);
+        color: #ff4d4d;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+        pointer-events: none;
+        white-space: nowrap;
+        transition: opacity 0.5s;
+    }
 
-  .food-display-list {
-    display: flex;
-    gap: 15px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    padding: 10px 0;
-  }
-
-  .food-display-list::-webkit-scrollbar {
-    display: none; /* hide scrollbar */
-  }
-
-  .scroll-arrow {
-    display: flex;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: rgba(255,255,255,0.9);
-    border: none;
-    border-radius: 50%;
-    padding: 10px;
-    cursor: pointer;
-    z-index: 10;
-    transition: background 0.3s;
-  }
-
-  .scroll-arrow:hover {
-    background-color: #ff4d4d;
-    color: white;
-  }
-
-  .scroll-arrow.left { left: 0; }
-  .scroll-arrow.right { right: 0; }
-
-  .scroll-arrow i {
-    font-size: 18px;
-    color: #ff4d4d;
-  }
+    .scroll-hint.hide {
+        opacity: 0;
+    }
 }
+
+
