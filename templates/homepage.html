@@ -655,144 +655,144 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
 })();
 
 <!--    Script for animation scrolling-->
-
-// Professional Scroll Reveal Animation System
-class ScrollReveal {
-    constructor() {
-        this.elements = [];
-        this.windowHeight = window.innerHeight;
-        this.init();
-    }
-
-    init() {
-        // Automatically add scroll-reveal class to major sections
-        const autoReveal = [
-            '.explore-menu',
-            '.explore-menu-list',
-            '.food-display',
-            '.category-section',
-            '.food-display-list',
-            '.footer'
-        ];
-
-        autoReveal.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                if (!el.classList.contains('scroll-reveal')) {
-                    this.elements.push(el);
-                }
-            });
-        });
-
-        // Add manually marked elements
-        document.querySelectorAll('.scroll-reveal, .scroll-reveal-left, .scroll-reveal-right, .scroll-reveal-scale, .scroll-reveal-fade, .stagger-children').forEach(el => {
-            this.elements.push(el);
-        });
-
-        // Listen for scroll events
-        window.addEventListener('scroll', () => this.check());
-        window.addEventListener('resize', () => {
+// Professional Scroll Reveal Animation System for JollyFoods
+(function() {
+    class ScrollRevealSystem {
+        constructor() {
+            this.elements = new Map();
             this.windowHeight = window.innerHeight;
-            this.check();
-        });
-
-        // Initial check
-        this.check();
-
-        // Add parallax effect
-        this.initParallax();
-    }
-
-    check() {
-        this.elements.forEach(el => {
-            const rect = el.getBoundingClientRect();
-            const elementTop = rect.top;
-            const elementBottom = rect.bottom;
-
-            // Trigger when element is 20% visible from bottom
-            const revealPoint = this.windowHeight * 0.85;
-
-            if (elementTop < revealPoint && elementBottom > 0) {
-                el.classList.add('revealed');
-            }
-        });
-    }
-
-    initParallax() {
-        const parallaxElements = document.querySelectorAll('.food-item img, .explore-menu-list-item img');
-
-        window.addEventListener('scroll', () => {
-            parallaxElements.forEach(el => {
-                const rect = el.getBoundingClientRect();
-                const scrolled = window.pageYOffset;
-                const rate = rect.top * 0.05;
-
-                if (rect.top < window.innerHeight && rect.bottom > 0) {
-                    el.style.transform = `translateY(${rate}px)`;
-                }
-            });
-        });
-    }
-}
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    new ScrollReveal();
-
-    // Add smooth scroll behavior
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            e.preventDefault();
-            const target = document.querySelector(this.getAttribute('href'));
-            if (target) {
-                target.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'start'
-                });
-            }
-        });
-    });
-
-    // Navbar hide/show on scroll
-    let lastScroll = 0;
-    const navbar = document.querySelector('.navbar');
-
-    window.addEventListener('scroll', () => {
-        const currentScroll = window.pageYOffset;
-
-        if (currentScroll > lastScroll && currentScroll > 100) {
-            navbar.style.transform = 'translateY(-100%)';
-        } else {
-            navbar.style.transform = 'translateY(0)';
+            this.lastScroll = 0;
+            this.ticking = false;
+            this.init();
         }
 
-        lastScroll = currentScroll;
-    });
-});
+        init() {
+            // Register elements to animate
+            this.registerElement('.explore-menu');
+            this.registerElement('.explore-menu-list');
+            this.registerElement('.food-display');
 
-// Add intersection observer for more performance
-if ('IntersectionObserver' in window) {
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -100px 0px'
-    };
+            // Register all category sections and their food lists
+            document.querySelectorAll('.category-section').forEach(section => {
+                this.registerElement(section);
+                const foodList = section.querySelector('.food-display-list');
+                if (foodList) {
+                    this.registerElement(foodList);
+                }
+            });
 
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('revealed');
+            this.registerElement('.footer');
+
+            // Event listeners
+            window.addEventListener('scroll', () => this.requestTick());
+            window.addEventListener('resize', () => {
+                this.windowHeight = window.innerHeight;
+                this.requestTick();
+            });
+
+            // Initial check
+            this.check();
+
+            // Navbar hide/show on scroll
+            this.initNavbarScroll();
+
+            // Parallax effect
+            this.initParallax();
+        }
+
+        registerElement(selector) {
+            const elements = typeof selector === 'string'
+                ? document.querySelectorAll(selector)
+                : [selector];
+
+            elements.forEach(el => {
+                if (el && !this.elements.has(el)) {
+                    this.elements.set(el, { revealed: false });
+                }
+            });
+        }
+
+        requestTick() {
+            if (!this.ticking) {
+                window.requestAnimationFrame(() => {
+                    this.check();
+                    this.ticking = false;
+                });
+                this.ticking = true;
             }
-        });
-    }, observerOptions);
+        }
 
-    // Observe all elements after a short delay
-    setTimeout(() => {
-        document.querySelectorAll('.explore-menu, .food-display, .category-section, .footer').forEach(el => {
-            observer.observe(el);
-        });
-    }, 100);
-}
+        check() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
+            this.elements.forEach((data, element) => {
+                if (data.revealed) return;
+
+                const rect = element.getBoundingClientRect();
+                const elementTop = rect.top + scrollTop;
+                const elementBottom = rect.bottom + scrollTop;
+                const viewportBottom = scrollTop + this.windowHeight;
+
+                // Trigger when element is 20% visible from bottom
+                const revealPoint = viewportBottom - (this.windowHeight * 0.2);
+
+                if (elementTop < revealPoint) {
+                    element.classList.add('revealed');
+                    data.revealed = true;
+                }
+            });
+        }
+
+        initNavbarScroll() {
+            const navbar = document.querySelector('.navbar');
+            if (!navbar) return;
+
+            window.addEventListener('scroll', () => {
+                const currentScroll = window.pageYOffset;
+
+                if (currentScroll > this.lastScroll && currentScroll > 150) {
+                    navbar.style.transform = 'translateY(-100%)';
+                } else {
+                    navbar.style.transform = 'translateY(0)';
+                }
+
+                this.lastScroll = currentScroll;
+            });
+        }
+
+        initParallax() {
+            const parallaxElements = document.querySelectorAll('.food-item img, .explore-menu-list-item img');
+            let rafId = null;
+
+            const updateParallax = () => {
+                parallaxElements.forEach(el => {
+                    const rect = el.getBoundingClientRect();
+
+                    if (rect.top < this.windowHeight && rect.bottom > 0) {
+                        const rate = (rect.top - this.windowHeight / 2) * 0.03;
+                        el.style.transform = `translateY(${rate}px)`;
+                    }
+                });
+                rafId = null;
+            };
+
+            window.addEventListener('scroll', () => {
+                if (!rafId) {
+                    rafId = requestAnimationFrame(updateParallax);
+                }
+            });
+        }
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            new ScrollRevealSystem();
+        });
+    } else {
+        new ScrollRevealSystem();
+    }
+})();
 
 </script>
 </body>
