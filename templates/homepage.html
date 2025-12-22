@@ -666,6 +666,7 @@ document.querySelectorAll('.food-display-wrapper').forEach(wrapper => {
     const list = wrapper.querySelector('.food-display-list');
 
     const updateHint = () => {
+        if (!hint) return; // <-- STOP if no hint exists
         const maxScroll = list.scrollWidth - list.clientWidth;
         if (list.scrollLeft >= maxScroll - 5) {
             hint.classList.add('hide');
@@ -677,7 +678,6 @@ document.querySelectorAll('.food-display-wrapper').forEach(wrapper => {
     list.addEventListener('scroll', updateHint);
     updateHint();
 });
-
 
 </script>
 </body>
