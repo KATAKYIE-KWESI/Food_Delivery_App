@@ -366,17 +366,3 @@ def terms(request):
     return render(request, 'terms.html')
 
 
-# creating the admin page
-from django.http import HttpResponse
-from django.contrib.auth.models import User
-
-def create_admin(request):
-    if User.objects.filter(username="admin").exists():
-        return HttpResponse("Admin already exists")
-
-    User.objects.create_superuser(
-        username="Michael",
-        email="qwesimike@gmail.com",
-        password="Admin@12345"
-    )
-    return HttpResponse("Admin created successfully")
