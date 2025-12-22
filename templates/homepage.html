@@ -655,7 +655,6 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
 })();
 
 <!--    Script for animation scrolling-->
-// Professional Scroll Reveal Animation System for JollyFoods
 (function() {
     class ScrollRevealSystem {
         constructor() {
@@ -726,19 +725,22 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
             this.elements.forEach((data, element) => {
-                if (data.revealed) return;
-
                 const rect = element.getBoundingClientRect();
-                const elementTop = rect.top + scrollTop;
-                const elementBottom = rect.bottom + scrollTop;
-                const viewportBottom = scrollTop + this.windowHeight;
+                const elementTop = rect.top;
+                const elementBottom = rect.bottom;
 
-                // Trigger when element is 20% visible from bottom
-                const revealPoint = viewportBottom - (this.windowHeight * 0.2);
+                // Element is in viewport (with 20% buffer)
+                const inView = elementTop < this.windowHeight * 0.8 && elementBottom > this.windowHeight * 0.2;
 
-                if (elementTop < revealPoint) {
-                    element.classList.add('revealed');
-                    data.revealed = true;
+                if (inView) {
+                    if (!element.classList.contains('revealed')) {
+                        element.classList.add('revealed');
+                    }
+                } else {
+                    // Remove revealed class when out of view to replay animation
+                    if (element.classList.contains('revealed')) {
+                        element.classList.remove('revealed');
+                    }
                 }
             });
         }
