@@ -89,53 +89,47 @@
    </div>
 
 
-   <div class="food-display" id="food-display">
-    <h2>Top dishes near you</h2>
+        <div class="food-display" id="food-display">
+        <h2>Top dishes near you</h2>
 
-    {% for group in grouped_foods %}
-    <div id="{{ group.category|lower|cut:' ' }}-section" class="category-section">
+      {% for group in grouped_foods %}
+        <div id="{{ group.category|lower|cut:' ' }}-section" class="category-section">
 
-        <!-- Scroll hint for mobile users -->
-        <p class="scroll-hint">Swipe → to see more</p>
+          <div class="food-display-list">
+            {% for food in group.items %}
+              <div class="food-item">
+                <img src="{% static 'assets/' %}{{ food.image }}" alt="{{ food.name }}">
+                <div class="food-header">
+                  <h3>{{ food.name }}</h3>
+                  <div class="rating">
+                    {% for i in "12345" %}
+                      {% if forloop.counter <= food.rating %}
+                        <i class="fa-solid fa-star"></i>
+                      {% else %}
+                        <i class="fa-regular fa-star"></i>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
 
-        <!-- Wrapper for scrollable food list -->
-        <div class="food-display-wrapper">
-
-            <!-- Food items list -->
-            <div class="food-display-list">
-                {% for food in group.items %}
-                <div class="food-item">
-                    <img src="{% static 'assets/' %}{{ food.image }}" alt="{{ food.name }}">
-                    <div class="food-header">
-                        <h3>{{ food.name }}</h3>
-                        <div class="rating">
-                            {% for i in "12345" %}
-                                {% if forloop.counter <= food.rating %}
-                                    <i class="fa-solid fa-star"></i>
-                                {% else %}
-                                    <i class="fa-regular fa-star"></i>
-                                {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <p class="food-description">{{ food.description }}</p>
-                    <p class="food-price">${{ food.price }}</p>
-                    <div class="quantity-selector">
-                        <button class="add-btn"><i class="fa-solid fa-plus"></i></button>
-                        <div class="counter" style="display: none;">
-                            <button class="minus-btn"><i class="fa-solid fa-minus"></i></button>
-                            <span class="quantity">1</span>
-                            <button class="plus-btn"><i class="fa-solid fa-plus"></i></button>
-                        </div>
-                    </div>
                 </div>
-                {% endfor %}
-            </div>
+                <p class="food-description">{{ food.description }}</p>
+                <p class="food-price">${{ food.price }}</p>
+                <div class="quantity-selector">
+                  <button class="add-btn"><i class="fa-solid fa-plus"></i></button>
+                  <div class="counter" style="display: none;">
+                    <button class="minus-btn"><i class="fa-solid fa-minus"></i></button>
+                    <span class="quantity">1</span>
+                    <button class="plus-btn"><i class="fa-solid fa-plus"></i></button>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
 
+          </div>
         </div>
+
+      {% endfor %}
     </div>
-    {% endfor %}
-</div>
 
 
 <!--------------------------------FOOTER---------------------------------------->
@@ -659,26 +653,6 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
     }
 });
 })();
-
-
-<!--document.querySelectorAll('.food-display-wrapper').forEach(wrapper => {-->
-<!--    const hint = wrapper.querySelector('.scroll-hint');-->
-<!--    const list = wrapper.querySelector('.food-display-list');-->
-
-<!--    const updateHint = () => {-->
-<!--        if (!hint) return; // <&#45;&#45; STOP if no hint exists-->
-<!--        const maxScroll = list.scrollWidth - list.clientWidth;-->
-<!--        if (list.scrollLeft >= maxScroll - 5) {-->
-<!--            hint.classList.add('hide');-->
-<!--        } else {-->
-<!--            hint.classList.remove('hide');-->
-<!--        }-->
-<!--    };-->
-
-<!--    list.addEventListener('scroll', updateHint);-->
-<!--    updateHint();-->
-<!--});-->
-
 </script>
 </body>
 </html>
