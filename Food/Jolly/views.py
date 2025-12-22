@@ -1,4 +1,5 @@
 import datetime
+import re
 from itertools import groupby
 from operator import itemgetter
 from django.views.decorators.http import require_POST
@@ -325,6 +326,18 @@ def login_view(request):
             return JsonResponse({
                 'success': False,
                 'error': 'Username and password are required'
+            })
+
+        #password validation
+        if len(password) < 6:
+            return JsonResponse({'success': False, 'error': 'Password must be at least 6 characters'})
+
+        #atleast one letter,one number,one special character
+        pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).+$'
+        if not re.match(pattern, password):
+            return JsonResponse({
+                'success': False,
+                'error': 'Password must contain at least a character,a number and a symbol'
             })
 
         # Authenticate user
