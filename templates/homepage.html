@@ -660,24 +660,24 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
 });
 })();
 
-<!--    script for scrolling food list-->
-document.querySelectorAll('.food-display-wrapper').forEach(wrapper => {
-    const hint = wrapper.querySelector('.scroll-hint');
-    const list = wrapper.querySelector('.food-display-list');
 
-    const updateHint = () => {
-        if (!hint) return; // <-- STOP if no hint exists
-        const maxScroll = list.scrollWidth - list.clientWidth;
-        if (list.scrollLeft >= maxScroll - 5) {
-            hint.classList.add('hide');
-        } else {
-            hint.classList.remove('hide');
-        }
-    };
+<!--document.querySelectorAll('.food-display-wrapper').forEach(wrapper => {-->
+<!--    const hint = wrapper.querySelector('.scroll-hint');-->
+<!--    const list = wrapper.querySelector('.food-display-list');-->
 
-    list.addEventListener('scroll', updateHint);
-    updateHint();
-});
+<!--    const updateHint = () => {-->
+<!--        if (!hint) return; // <&#45;&#45; STOP if no hint exists-->
+<!--        const maxScroll = list.scrollWidth - list.clientWidth;-->
+<!--        if (list.scrollLeft >= maxScroll - 5) {-->
+<!--            hint.classList.add('hide');-->
+<!--        } else {-->
+<!--            hint.classList.remove('hide');-->
+<!--        }-->
+<!--    };-->
+
+<!--    list.addEventListener('scroll', updateHint);-->
+<!--    updateHint();-->
+<!--});-->
 
 </script>
 </body>
