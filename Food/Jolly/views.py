@@ -281,11 +281,25 @@ def signup_view(request):
         if not username or not email or not password or not phone:
             return JsonResponse({'success': False, 'error': 'All fields are required'})
 
+            # password validation
+        if len(password) < 6:
+            return JsonResponse({'success': False, 'error': 'Password must be at least 6 characters'})
+
+            # at least one letter,one number,one special character
+        pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).+$'
+        if not re.match(pattern, password):
+             return JsonResponse({
+                    'success': False,
+                    'error': 'Password must contain at least a character,a number and a symbol'
+             })
+
         # Check if username/email exists
         if User.objects.filter(username=username).exists():
             return JsonResponse({'success': False, 'error': 'Username already exists'})
         if User.objects.filter(email=email).exists():
             return JsonResponse({'success': False, 'error': 'Email already registered'})
+
+
 
         # Create user
         user = User.objects.create_user(username=username, email=email, password=password)
@@ -328,17 +342,6 @@ def login_view(request):
                 'error': 'Username and password are required'
             })
 
-        #password validation
-        if len(password) < 6:
-            return JsonResponse({'success': False, 'error': 'Password must be at least 6 characters'})
-
-        #atleast one letter,one number,one special character
-        pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).+$'
-        if not re.match(pattern, password):
-            return JsonResponse({
-                'success': False,
-                'error': 'Password must contain at least a character,a number and a symbol'
-            })
 
         # Authenticate user
         user = authenticate(request, username=username, password=password)
