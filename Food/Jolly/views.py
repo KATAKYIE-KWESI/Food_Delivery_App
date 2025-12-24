@@ -1,7 +1,8 @@
-import datetime
+
 import re
 import json
-import time # Added for latency/monitoring
+
+from decimal import Decimal
 from itertools import groupby
 from operator import itemgetter
 
@@ -86,8 +87,29 @@ def contact(request):
 def mobile(request):
     return render(request, 'mobile.html')
 
+
+
 def payment(request):
-    return render(request, 'payment.html')
+    items = CartItem.objects.filter(user=request.user)
+
+    # Calculate subtotal (this is already a Decimal because of your model)
+    subtotal = sum(item.food_price * item.quantity for item in items)
+
+    tax_rate = Decimal('0.10')
+    delivery_amount = Decimal('5.0')
+
+    tax = subtotal * tax_rate
+    final_total = subtotal + delivery_amount + tax
+
+    context = {
+        'total_ghs': final_total,
+        # We multiply by 100 to get Pesewas for Paystack
+        'paystack_amount': int(final_total * 100),
+        'paystack_public_key': settings.PAYSTACK_PUBLIC_KEY,
+    }
+    return render(request, 'payment.html', context)
+
+
 
 def cart(request):
     if request.user.is_authenticated:
@@ -149,6 +171,8 @@ def add_to_cart(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+
+
 @require_POST
 def update_cart_item(request):
     try:
@@ -183,6 +207,8 @@ def get_cart_count(request):
         session_key = request.session.session_key
         count = sum(item.quantity for item in CartItem.objects.filter(session_key=session_key)) if session_key else 0
     return JsonResponse({'cart_count': count})
+
+
 
 @require_POST
 def signup_view(request):
@@ -229,6 +255,7 @@ def signup_view(request):
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 
 @require_POST
 def login_view(request):

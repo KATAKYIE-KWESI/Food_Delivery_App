@@ -35,6 +35,18 @@
 
 <!-------------------CART SECTION------------------>
 <div class="cart-container">
+
+    <div class="delivery-tracker" id="deliveryTracker">
+    <div class="tracker-header">
+        <span><i class="fa-solid fa-truck-fast"></i> Estimated Delivery</span>
+        <span id="timerText">30:00</span>
+    </div>
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+    <p class="tracker-status">We're ready to prep your meal!</p>
+    </div>
+
     <h1 class="cart-title">Your Shopping Cart</h1>
 
     {% if cart_items %}

@@ -1,0 +1,40 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+<div style="display: flex; gap: 20px; margin-bottom: 20px; font-family: sans-serif;">
+
+    <div style="flex: 1; background: white; padding: 15px; border: 1px solid #ccc; border-radius: 8px;">
+        <h3 style="margin-top: 0;">Threat Distribution</h3>
+        <canvas id="securityChart" style="max-height: 200px;"></canvas>
+    </div>
+
+    <div style="flex: 1; background: #333; color: white; padding: 15px; border-radius: 8px;">
+        <h3 style="margin-top: 0; color: #00ff00;">System Vitals</h3>
+        <p>CPU: {{ system_health.cpu }}%</p>
+        <p>RAM: {{ system_health.ram }}%</p>
+        <p>Latency: {{ system_health.db_latency }}</p>
+        <p>Total Alerts: {{ system_health.active_logs }}</p>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('securityChart').getContext('2d');
+        const rawData = {{ chart_data|safe }};
+
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: rawData.map(item => item.event_type),
+                datasets: [{
+                    data: rawData.map(item => item.total),
+                    backgroundColor: ['#ff4d4d', '#3399ff', '#ffcc00', '#00cc66']
+                }]
+            }
+        });
+    });
+</script>
+
+{{ block.super }}
+{% endblock %}
