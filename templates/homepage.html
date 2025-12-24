@@ -12,47 +12,60 @@
 </head>
 <body>
 
-<!---------------------------------Nav Bar  ------------------------------------------->
-   <div class="navbar">
+<!--------------------------------- Nav Bar ------------------------------------------->
+<div class="navbar">
 
-       <a href="{% url 'homepage' %}" class="logo">  <i class="fa-solid fa-utensils"></i>  JollyFoods.</a>
+    <!-- Logo -->
+    <a href="{% url 'homepage' %}" class="logo">
+        <i class="fa-solid fa-utensils"></i> JollyFoods.
+    </a>
+
+    <!-- Desktop Navigation Menu -->
+    <ul class="navbar-menu" id="navbarMenu">
+        <li><a href="{% url 'homepage' %}">Home</a></li>
+        <li><a href="{% url 'menu' %}">Menu</a></li>
+        <li><a href="{% url 'contact' %}">Contact Us</a></li>
+        <li><a href="{% url 'payment' %}">Payment</a></li>
+    </ul>
+
+    <!-- Right Side Icons + Auth -->
+    <div class="hamburger">
 
 
-       <ul class="navbar-menu">
-           <li><a href="{% url 'homepage' %}">Home</a></li>
-           <li><a href="{% url 'menu' %}">Menu</a></li>
-           <li><a href="{% url 'contact' %}">Contact Us</a></li>
-           <li><a href="{% url 'payment' %}">Payment</a></li>
-       </ul>
+        <!-- 🛒 Cart -->
+        <div class="shopping-cart">
+            <a href="{% url 'cart' %}">
+                <i class="fa-solid fa-basket-shopping"></i>
+                <span class="dot" id="cart-dot-count"></span>
+            </a>
+        </div>
 
-          <div class="hamburger">
-                <div class="search-icon">
-                   <i class="fa-solid fa-magnifying-glass"></i>
-                </div>
+        <!-- 👤 Auth -->
+        {% if user.is_authenticated %}
+        <div class="user-menu">
+            <button class="user-btn">
+                <i class="fa-solid fa-user"></i>
+               <span>{{ user.username }}</span>
+            </button>
 
-                <div class="shopping-cart">
-                    <a href="{% url 'cart' %}">
-                        <i class="fa-solid fa-basket-shopping"></i>
-                        <span class="dot" id="cart-dot-count"></span>
-                    </a>
-                </div>
-                {% if user.is_authenticated %}
-                <div class="user-menu">
-                    <button class="user-btn">
-                        <i class="fa-solid fa-user"></i>
-                        {{ user.username }}
-                    </button>
-                    <div class="user-dropdown">
-                        <a href="#"><i class="fa-solid fa-user"></i> Profile</a>
-                        <a href="{% url 'cart' %}"><i class="fa-solid fa-shopping-bag"></i> Orders</a>
-                        <a href="{% url 'logout' %}"><i class="fa-solid fa-sign-out"></i> Logout</a>
-                    </div>
-                </div>
-                {% else %}
-                    <button id="openAuthModal">sign in</button>
-                {% endif %}
-          </div>
-   </div>
+            <div class="user-dropdown">
+                <a href="#"><i class="fa-solid fa-user"></i> Profile</a>
+                <a href="{% url 'cart' %}"><i class="fa-solid fa-shopping-bag"></i> Orders</a>
+                <a href="{% url 'logout' %}"><i class="fa-solid fa-sign-out"></i> Logout</a>
+            </div>
+        </div>
+        {% else %}
+            <button id="openAuthModal">Sign in</button>
+        {% endif %}
+
+        <!-- ☰ Mobile Menu Toggle -->
+        <div class="menu-toggle" id="menuToggle">
+            <i class="fa-solid fa-bars"></i>
+        </div>
+
+    </div>
+</div>
+
 
 <!-------------------END OF NAVBAR------------------>
 
@@ -94,6 +107,11 @@
 
       {% for group in grouped_foods %}
         <div id="{{ group.category|lower|cut:' ' }}-section" class="category-section">
+
+                  <div class="swipe-indicator">
+                <span>Swipe for more</span>
+                <i class="fa-solid fa-arrow-right-long"></i>
+            </div>
 
           <div class="food-display-list">
             {% for food in group.items %}
@@ -606,7 +624,7 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
     const confirmPassword = document.getElementById('signupConfirmPassword').value;
-    const phone = document.getElementById('signupPhone').value; // <-- add this
+    const phone = document.getElementById('signupPhone').value;
     const submitBtn = signupFormSubmit.querySelector('.auth-btn');
 
     if (password !== confirmPassword) {
@@ -653,6 +671,208 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
     }
 });
 })();
+
+  // Professional Scroll Reveal Animation System for JollyFoods
+(function() {
+    class ScrollRevealSystem {
+        constructor() {
+            this.elements = new Map();
+            this.windowHeight = window.innerHeight;
+            this.lastScroll = 0;
+            this.ticking = false;
+            this.init();
+        }
+
+        init() {
+            // Register elements to animate
+            this.registerElement('.explore-menu');
+            this.registerElement('.explore-menu-list');
+            this.registerElement('.food-display');
+
+            // Register all category sections and their food lists
+            document.querySelectorAll('.category-section').forEach(section => {
+                this.registerElement(section);
+                const foodList = section.querySelector('.food-display-list');
+                if (foodList) {
+                    this.registerElement(foodList);
+                }
+            });
+
+            this.registerElement('.footer');
+
+            // Event listeners
+            window.addEventListener('scroll', () => this.requestTick());
+            window.addEventListener('resize', () => {
+                this.windowHeight = window.innerHeight;
+                this.requestTick();
+            });
+
+            // Initial check
+            this.check();
+
+            // Navbar hide/show on scroll
+            this.initNavbarScroll();
+
+            // Parallax effect
+            this.initParallax();
+        }
+
+        registerElement(selector) {
+            const elements = typeof selector === 'string'
+                ? document.querySelectorAll(selector)
+                : [selector];
+
+            elements.forEach(el => {
+                if (el && !this.elements.has(el)) {
+                    this.elements.set(el, { revealed: false });
+                }
+            });
+        }
+
+        requestTick() {
+            if (!this.ticking) {
+                window.requestAnimationFrame(() => {
+                    this.check();
+                    this.ticking = false;
+                });
+                this.ticking = true;
+            }
+        }
+
+        check() {
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            this.elements.forEach((data, element) => {
+                const rect = element.getBoundingClientRect();
+                const elementTop = rect.top;
+                const elementBottom = rect.bottom;
+
+                // Element is in viewport (with 20% buffer)
+                const inView = elementTop < this.windowHeight * 0.8 && elementBottom > this.windowHeight * 0.2;
+
+                if (inView) {
+                    if (!element.classList.contains('revealed')) {
+                        element.classList.add('revealed');
+                    }
+                } else {
+                    // Remove revealed class when out of view to replay animation
+                    if (element.classList.contains('revealed')) {
+                        element.classList.remove('revealed');
+                    }
+                }
+            });
+        }
+
+        initNavbarScroll() {
+            const navbar = document.querySelector('.navbar');
+            if (!navbar) return;
+
+            window.addEventListener('scroll', () => {
+                const currentScroll = window.pageYOffset;
+
+                if (currentScroll > this.lastScroll && currentScroll > 150) {
+                    navbar.style.transform = 'translateY(-100%)';
+                } else {
+                    navbar.style.transform = 'translateY(0)';
+                }
+
+                this.lastScroll = currentScroll;
+            });
+        }
+
+        initParallax() {
+            const parallaxElements = document.querySelectorAll('.food-item img, .explore-menu-list-item img');
+            let rafId = null;
+
+            const updateParallax = () => {
+                parallaxElements.forEach(el => {
+                    const rect = el.getBoundingClientRect();
+
+                    if (rect.top < this.windowHeight && rect.bottom > 0) {
+                        const rate = (rect.top - this.windowHeight / 2) * 0.03;
+                        el.style.transform = `translateY(${rate}px)`;
+                    }
+                });
+                rafId = null;
+            };
+
+            window.addEventListener('scroll', () => {
+                if (!rafId) {
+                    rafId = requestAnimationFrame(updateParallax);
+                }
+            });
+        }
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            new ScrollRevealSystem();
+        });
+    } else {
+        new ScrollRevealSystem();
+    }
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+    const menuToggle = document.getElementById('menuToggle');
+    const navbarMenu = document.getElementById('navbarMenu');
+    const openAuthModalMenu = document.getElementById('openAuthModalMenu');
+    const authModal = document.getElementById('authModal');
+
+    // Toggle Hamburger
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            navbarMenu.classList.toggle('active');
+        });
+    }
+
+    // Open Modal and Blur Navbar
+    if (openAuthModalMenu) {
+        openAuthModalMenu.addEventListener('click', (e) => {
+            e.preventDefault();
+            authModal.classList.add('active');
+            navbarMenu.classList.remove('active');
+
+            // Add this line to blur the background/navbar
+            document.body.classList.add('modal-open');
+        });
+    }
+
+    // Close Modal and Remove Blur
+    // Assuming you have a close button or click-outside logic
+    window.addEventListener('click', (e) => {
+        if (e.target === authModal) {
+            authModal.classList.remove('active');
+            document.body.classList.remove('modal-open'); // Remove blur
+        }
+    });
+});
+
+
+<!--Allows the swipe for more to disappear once the user starts scrolling-->
+document.addEventListener('DOMContentLoaded', () => {
+    // Select all scrollable food lists
+    const foodLists = document.querySelectorAll('.food-display-list');
+
+    foodLists.forEach(list => {
+        list.addEventListener('scroll', function() {
+            // Find the indicator within the SAME category section
+            const section = this.closest('.category-section');
+            const indicator = section ? section.querySelector('.swipe-indicator') : null;
+
+            // If user scrolled more than 30px, fade out the hint
+            if (indicator && this.scrollLeft > 30) {
+                indicator.style.opacity = '0';
+                indicator.style.pointerEvents = 'none';
+                // Optional: remove from layout after fade
+                setTimeout(() => {
+                    indicator.style.visibility = 'hidden';
+                }, 500);
+            }
+        }, { passive: true });
+    });
+});
 </script>
 </body>
 </html>

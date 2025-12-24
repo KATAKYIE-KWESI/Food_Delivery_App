@@ -29,3 +29,24 @@ class Profile(models.Model):
     def __str__(self):
         return self.user.username
 
+
+from django.db import models
+
+class SecurityLog(models.Model):
+    EVENT_TYPES = (
+        ('LOGIN_FAIL', 'Failed Login Attempt'),
+        ('SENSITIVE_ACCESS', 'Sensitive Data Access'),
+        ('BREAKAGE', 'Backend Error (500)'),
+        ('DATA_VOL', 'High Data Usage'),
+    )
+
+    timestamp = models.DateTimeField(auto_now_add=True)
+    event_type = models.CharField(max_length=20, choices=EVENT_TYPES)
+    ip_address = models.GenericIPAddressField()
+    user_agent = models.TextField(null=True, blank=True)
+    path = models.CharField(max_length=255)
+    details = models.TextField()
+    severity = models.IntegerField(default=1)  # 1=Low, 3=Critical
+
+    def __str__(self):
+        return f"{self.event_type} - {self.ip_address} at {self.timestamp}"

@@ -31,10 +31,12 @@ a{
 }
 
 .navbar{
+ position: relative;
  padding: 20px 0px;
  display: flex;
  justify-content: space-between;
  align-items: center;
+ z-index: 10000;
 }
 
 .navbar-menu{
@@ -829,6 +831,27 @@ html {
     align-items: center;
     gap: 8px;
     font-family: 'Poppins', sans-serif;
+    max-width: 200px;
+}
+
+
+/* Prevent long names from breaking the navbar */
+.user-btn span {
+    display: inline-block;
+    max-width: 120px; /* Adjust this number to your liking */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+}
+
+/* Adjustments for the mobile menu version */
+.menu-auth-item a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
 }
 
 .user-btn:hover {
@@ -916,7 +939,6 @@ html {
 @media (max-width: 768px) {
     /* 1. Navbar: Logo, Cart, and Sign-in on ONE line */
     .navbar {
-        display: flex !important;
         flex-direction: row !important;
         justify-content: space-between !important;
         align-items: center !important;
@@ -1212,52 +1234,156 @@ html {
 }
 
 
-/* Hide arrows by default */
-.scroll-arrow {
-  display: none;
+
+
+/* Hide hamburger on desktop */
+.menu-toggle {
+    display: none;
+    font-size: 24px;
+    cursor: pointer;
 }
 
-/* Optional hint text */
-.scroll-hint {
-  display: none;
-  font-size: 0.9rem;
-  color: #ff4d4d;
-  margin-bottom: 5px;
+/* Desktop menu */
+.navbar-menu {
+    display: flex;
+    list-style: none;
+    gap: 20px;
 }
 
-/* Scrollable food list on small screens */
-@media screen and (max-width: 768px) {
-    .food-display-wrapper {
-        overflow-x: auto;
-        scroll-behavior: smooth;
-        position: relative;
+/* Mobile only */
+
+@media (max-width: 768px) {
+
+    .menu-toggle {
+        display: block;
+        z-index: 10001; /* Higher than the menu itself */
     }
 
-    .food-display-list {
-        display: flex;
-        gap: 15px;
-        padding-right: 20px;
-    }
-
-    .scroll-hint {
+   .navbar-menu {
         position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        background-color: rgba(255, 255, 255, 0.8);
-        color: #ff4d4d;
-        padding: 5px 10px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 500;
-        pointer-events: none;
-        white-space: nowrap;
-        transition: opacity 0.5s;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: white;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 0;
+        display: none;
+        box-shadow: 0 10px 10px rgba(0,0,0,0.1);
+        z-index: 10000; /* Match navbar z-index to stay on top */
     }
 
-    .scroll-hint.hide {
-        opacity: 0;
+    /* This is what the JavaScript toggles */
+    .navbar-menu.active {
+        display: flex !important;
     }
 }
 
 
+
+@media (max-width: 768px) {
+    body {
+        width: 97%; /* More space on mobile */
+    }
+}
+
+
+/* --- NEW NAVBAR & HAMBURGER LOGIC --- */
+
+/* 1. Ensure the main container stays on top */
+.navbar {
+    position: relative;
+    z-index: 10000;
+    background-color: white;
+    padding: 20px 0;
+}
+
+/* 2. Hide the Cart and Sign-In inside the dropdown on Desktop */
+.menu-auth-item {
+    display: none;
+}
+
+/* 3. Mobile Specific Layout */
+@media (max-width: 768px) {
+    /* Keeps Search and Hamburger side-by-side */
+    .hamburger {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        gap: 15px;
+    }
+
+    /* Shows Cart/Sign-in in the dropdown menu on mobile */
+    .menu-auth-item {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 15px 0;
+        border-top: 1px solid #eee;
+    }
+
+    /* The actual dropdown menu */
+    .navbar-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: white;
+        flex-direction: column;
+        padding: 20px 0;
+        display: none; /* JavaScript will toggle this to 'flex' */
+        box-shadow: 0 10px 15px rgba(0,0,0,0.1);
+        z-index: 10000;
+    }
+
+    .navbar-menu.active {
+        display: flex !important;
+    }
+
+    .menu-toggle {
+        display: block !important; /* Forces hamburger to show */
+        font-size: 24px;
+        cursor: pointer;
+        color: #49557e;
+    }
+}
+
+/* Apply blur to navbar when modal is open */
+body.modal-open .navbar {
+    filter: blur(5px) grayscale(30%);
+    pointer-events: none; /* Prevents clicking links while blurred */
+    transition: filter 0.3s ease;
+}
+
+/* Ensure the modal itself is NOT blurred */
+#authModal {
+    filter: none !important;
+    z-index: 10001; /* Must be higher than navbar */
+}
+
+
+/* Default hidden on Desktop */
+.swipe-indicator {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .swipe-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end; /* Aligns to the right */
+        gap: 8px;
+        padding: 0 15px 10px;
+        color: #ff6b6b; /* Use your brand color */
+        font-size: 13px;
+        font-weight: 500;
+        opacity: 0.8;
+        /* Subtle animation to grab attention */
+        animation: nudge 2s infinite;
+    }
+
+    @keyframes nudge {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(-5px); }
+    }
+}
