@@ -1,6 +1,6 @@
-import time
 from .models import SecurityLog
-
+from .utils.telegram import send_telegram_alert
+import time
 
 class CyberSecurityMiddleware:
     def __init__(self, get_response):
@@ -26,8 +26,9 @@ class CyberSecurityMiddleware:
                 details=f"Server Error 500. Processing time: {duration}s",
                 severity=3
             )
+            send_telegram_alert(f"🚨 Server Error 500 detected from IP {ip} at {request.path}")
 
-        # 2. LOG SUSPICIOUS DATA USAGE (e.g., payloads > 1MB)
+        # 2. LOG SUSPICIOUS DATA USAGE (payloads > 1MB)
         if data_size > 1000000:
             SecurityLog.objects.create(
                 event_type='DATA_VOL',
@@ -36,5 +37,6 @@ class CyberSecurityMiddleware:
                 details=f"Large payload detected: {data_size} bytes.",
                 severity=2
             )
+            send_telegram_alert(f"⚠️ Large payload ({data_size} bytes) detected from IP {ip} at {request.path}")
 
         return response

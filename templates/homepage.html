@@ -23,8 +23,8 @@
     <!-- Desktop Navigation Menu -->
     <ul class="navbar-menu" id="navbarMenu">
         <li><a href="{% url 'homepage' %}">Home</a></li>
-        <li><a href="{% url 'menu' %}">Menu</a></li>
-        <li><a href="{% url 'contact' %}">Contact Us</a></li>
+        <li><a href="#food-display">Menu</a></li>
+        <li><a href="#contact">Contact Us</a></li>
         <li><a href="{% url 'payment' %}">Payment</a></li>
     </ul>
 
@@ -157,7 +157,7 @@
     <i class="fa-solid fa-arrow-up"></i>
 </button>
 
-<footer class="footer">
+<footer class="footer" id="contact">
     <div class="footer-container">
         <!-- Company Info Section -->
         <div class="footer-section">
@@ -201,7 +201,7 @@
             <h3 class="footer-title">Company</h3>
             <ul class="footer-links">
                 <li><a href="{% url 'homepage' %}">Home</a></li>
-                <li><a href="{% url 'menu' %}">Our Menu</a></li>
+                <li><a href="#food-display">Our Menu</a></li>
                 <li><a href="#about">About Us</a></li>
                 <li><a href="#careers">Careers</a></li>
                 <li><a href="#blog">Blog</a></li>
@@ -213,7 +213,7 @@
         <div class="footer-section">
             <h3 class="footer-title">Get in Touch</h3>
             <ul class="footer-links">
-                <li><a href="{% url 'contact' %}">Contact Us</a></li>
+                <li><a href="#contact">Contact Us</a></li>
                 <li><a href="#support">Customer Support</a></li>
                 <li><a href="#faq">FAQ</a></li>
                 <li><a href="#feedback">Feedback</a></li>
@@ -509,7 +509,7 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
     const loginFormSubmit = document.getElementById('loginFormSubmit');
     const signupFormSubmit = document.getElementById('signupFormSubmit');
     const openAuthModalBtn = document.getElementById('openAuthModal');
-    const phone = document.getElementById('signupPhone').value;
+
 
     // Get CSRF token
     function getCookie(name) {
@@ -588,6 +588,7 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
         const password = document.getElementById('loginPassword').value;
         const submitBtn = loginFormSubmit.querySelector('.auth-btn');
 
+
         submitBtn.classList.add('loading');
 
         try {
@@ -599,7 +600,8 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
                 },
                 body: JSON.stringify({
                     username: username,
-                    password: password
+                    password: password,
+
                 })
             });
 
@@ -627,7 +629,6 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
     const email = document.getElementById('signupEmail').value;
     const password = document.getElementById('signupPassword').value;
     const confirmPassword = document.getElementById('signupConfirmPassword').value;
-    const phone = document.getElementById('signupPhone').value;
     const submitBtn = signupFormSubmit.querySelector('.auth-btn');
 
     if (password !== confirmPassword) {
@@ -653,7 +654,7 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
                 username: username,
                 email: email,
                 password: password,
-                phone: phone // <-- add comma and use defined variable
+
             })
         });
 

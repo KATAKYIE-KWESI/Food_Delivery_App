@@ -161,3 +161,7 @@ HF_TOKEN = config("HF_TOKEN", default=None)
 
 # Groq API
 GROQ_API_KEY = config("GROQ_API_KEY")
+
+#Telegram alerts
+TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID = config('TELEGRAM_CHAT_ID')
