@@ -298,10 +298,6 @@ def terms(request):
     return render(request, 'terms.html')
 
 
-from groq import Groq
-from django.http import JsonResponse
-from django.conf import settings
-
 
 from groq import Groq
 from django.http import JsonResponse
