@@ -160,4 +160,4 @@ import os
 HF_TOKEN = config("HF_TOKEN", default=None)
 
 # Groq API
-GROQ_API_KEY = "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"
+GROQ_API_KEY = config("GROQ_API_KEY")
