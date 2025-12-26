@@ -267,3 +267,62 @@
     }
 }
 
+
+    z-index: 2;
+}
+
+/* --- DELIVERY TRACKER SECTION --- */
+.delivery-tracker {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 25px;
+    border-left: 6px solid tomato; /* Changed to match your theme */
+}
+
+.tracker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+#timerText {
+    color: tomato; /* Changed to match your theme */
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
+.progress-container {
+    position: relative;
+    background: #e0e0e0;
+    height: 12px;
+    border-radius: 10px;
+    margin: 25px 0 10px 0;
+}
+
+.progress-bar {
+    background: tomato; /* Changed to match your theme */
+    height: 100%;
+    width: 100%;
+    border-radius: 10px;
+    transition: width 1s linear;
+}
+
+.car-marker {
+    position: absolute;
+    top: -15px;
+    left: 100%;
+    color: tomato; /* Changed to match your theme */
+    font-size: 26px;
+    transform: translateX(-50%);
+    transition: left 1s linear;
+    z-index: 10;
+}
+
+.tracker-status {
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+}

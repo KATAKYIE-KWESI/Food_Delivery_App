@@ -296,3 +296,50 @@ def logout_view(request):
 
 def terms(request):
     return render(request, 'terms.html')
+
+
+from groq import Groq
+from django.http import JsonResponse
+from django.conf import settings
+
+
+from groq import Groq
+from django.http import JsonResponse
+from django.conf import settings
+
+def ai_chatbot(request):
+    user_message = request.GET.get("message", "").strip()
+
+    if not user_message:
+        return JsonResponse({"reply": "Akwaaba! 👋 I'm JollyBot! How can I help? 😊"})
+
+    rules = """
+You're JollyBot, friendly AI for JollyFoods in Kumasi! 🍽️
+
+Be warm, fun, use emojis 😊 Chat about anything. Keep replies 2-3 sentences.
+
+MENU: Salad GHS12-14, Jollof/Pasta GHS15, Chicken GHS18, Fried Rice GHS13, Soda GHS2, Juice GHS5
+
+🚫 NO DISCOUNTS - prices fixed. Say: "Can't discount! But our food is worth it! 😊"
+
+Open 10am-10pm, Delivery GHS5
+"""
+
+    try:
+        client = Groq(api_key=settings.GROQ_API_KEY)
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": rules},
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=120,
+            temperature=0.8,
+        )
+
+        return JsonResponse({"reply": response.choices[0].message.content})
+
+    except Exception as e:
+        print("ERROR:", str(e))
+        return JsonResponse({"reply": "Oops! Try again? 😅"}, status=500)

@@ -1,0 +1,189 @@
+{% load static %}
+<style>
+    /* Floating Container */
+    .ai-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end; /* Ensures card and button align right */
+    }
+
+    /* Chat Card Styling */
+    .ai-chat-card {
+        display: none;
+        width: 320px;
+        height: 450px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        flex-direction: column;
+        margin-bottom: 15px;
+        overflow: hidden;
+        animation: slideUp 0.3s ease-out; /* Smooth entrance */
+    }
+
+    /* Entrance Animation */
+    @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    .ai-header {
+        background: tomato;
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: bold;
+    }
+
+    .ai-messages {
+        flex: 1;
+        padding: 15px;
+        overflow-y: auto;
+        font-size: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background-color: #f9f9f9;
+    }
+
+    /* Message Bubbles */
+    .bot-msg {
+        background: #e1e1e1;
+        color: #333;
+        padding: 10px 14px;
+        border-radius: 15px 15px 15px 0px;
+        align-self: flex-start;
+        max-width: 85%;
+        line-height: 1.4;
+    }
+
+    .user-msg {
+        background: tomato;
+        color: white;
+        padding: 10px 14px;
+        border-radius: 15px 15px 0px 15px;
+        align-self: flex-end;
+        max-width: 85%;
+        line-height: 1.4;
+    }
+
+    /* Input Area */
+    .ai-input-area {
+        display: flex;
+        padding: 12px;
+        border-top: 1px solid #eee;
+        background: white;
+    }
+
+    .ai-input-area input {
+        flex: 1;
+        border: none;
+        outline: none;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .ai-input-area button {
+        background: none;
+        border: none;
+        color: tomato;
+        cursor: pointer;
+        font-size: 20px;
+        transition: transform 0.2s;
+    }
+
+    .ai-input-area button:hover { transform: scale(1.1); }
+
+    /* Toggle Button */
+    .ai-toggle-btn {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: tomato;
+        color: white;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        transition: all 0.3s;
+    }
+
+    .ai-toggle-btn:hover { transform: rotate(15deg) scale(1.05); }
+</style>
+
+<div class="ai-container">
+    <div class="ai-chat-card" id="aiChatCard">
+        <div class="ai-header">
+            <span>JollyBot 🤖</span>
+            <button onclick="toggleChat()" style="background:none; border:none; color:white; cursor:pointer; font-size:24px;">&times;</button>
+        </div>
+        <div class="ai-messages" id="aiMessages">
+            <p class="bot-msg">Akwaaba! I'm JollyBot. Hungry? 😋</p>
+        </div>
+        <div class="ai-input-area">
+            <input type="text" id="aiInput" placeholder="Ask about the menu..." onkeypress="if(event.key === 'Enter') sendToAI()">
+            <button onclick="sendToAI()"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <button class="ai-toggle-btn" onclick="toggleChat()" id="botToggleButton">
+        <i class="fa-solid fa-robot"></i>
+    </button>
+</div>
+
+<script>
+function toggleChat() {
+    const card = document.getElementById('aiChatCard');
+    const input = document.getElementById('aiInput');
+
+    if (card.style.display === 'none' || card.style.display === '') {
+        card.style.display = 'flex';
+        input.focus(); // Auto-focus cursor
+    } else {
+        card.style.display = 'none';
+    }
+}
+
+async function sendToAI() {
+    const input = document.getElementById('aiInput');
+    const msgArea = document.getElementById('aiMessages');
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    // 1. Add User Message
+    msgArea.innerHTML += `<div class="user-msg">${text}</div>`;
+    input.value = '';
+
+    // 2. Add Loading State
+    const loadingId = "loading-" + Date.now();
+    msgArea.innerHTML += `<div class="bot-msg" id="${loadingId}">...</div>`;
+    msgArea.scrollTop = msgArea.scrollHeight;
+
+    try {
+        // 3. Fetch from Django Backend
+        const response = await fetch(`/ai-chat/?message=${encodeURIComponent(text)}`);
+        const data = await response.json();
+
+        // 4. Replace loading dots with real answer
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) {
+            loadingElement.innerText = data.reply;
+        }
+    } catch (e) {
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) {
+            loadingElement.innerText = "Sorry, I'm having a technical glitch. Try again!";
+        }
+    }
+
+    // 5. Scroll to bottom
+    msgArea.scrollTop = msgArea.scrollHeight;
+}
+</script>

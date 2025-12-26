@@ -18,5 +18,6 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('terms/', views.terms, name='terms'),
+    path('ai-chat/', views.ai_chatbot, name='ai_chatbot'),
 
 ]

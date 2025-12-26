@@ -36,15 +36,18 @@
 <!-------------------CART SECTION------------------>
 <div class="cart-container">
 
-    <div class="delivery-tracker" id="deliveryTracker">
+   <div class="delivery-tracker" id="deliveryTracker">
     <div class="tracker-header">
-        <span><i class="fa-solid fa-truck-fast"></i> Estimated Delivery</span>
+        <span><i class="fa-solid fa-clock"></i> Arriving in</span>
         <span id="timerText">30:00</span>
     </div>
     <div class="progress-container">
         <div class="progress-bar" id="progressBar"></div>
+        <div class="car-marker" id="carMarker">
+            <i class="fa-solid fa-car-side"></i>
+        </div>
     </div>
-    <p class="tracker-status">We're ready to prep your meal!</p>
+    <p class="tracker-status">Chef is preparing your Jollof!</p>
     </div>
 
     <h1 class="cart-title">Your Shopping Cart</h1>
@@ -271,6 +274,65 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+<!-- Script for time for delivery-->
+function startDeliveryTimer(durationInMinutes) {
+    let timer = durationInMinutes * 60;
+    const timerDisplay = document.getElementById('timerText');
+    const progressBar = document.getElementById('progressBar');
+    const carMarker = document.getElementById('carMarker'); // Get the car
+    const total = durationInMinutes * 60;
+
+    setInterval(function () {
+        let mins = parseInt(timer / 60, 10);
+        let secs = parseInt(timer % 60, 10);
+        timerDisplay.textContent = (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs);
+
+        let percentage = (timer / total * 100);
+
+        // Move both at the same time
+        progressBar.style.width = percentage + "%";
+        carMarker.style.left = percentage + "%";
+
+        if (--timer < 0) {
+            timer = 0;
+            document.querySelector('.tracker-status').textContent = "Driver has arrived!";
+        }
+    }, 1000);
+}
+    function startDeliveryTimer(durationInMinutes) {
+        let timer = durationInMinutes * 60;
+        const timerDisplay = document.getElementById('timerText');
+        const progressBar = document.getElementById('progressBar');
+        const carMarker = document.getElementById('carMarker');
+        const total = durationInMinutes * 60;
+
+        const countdown = setInterval(function () {
+            let mins = parseInt(timer / 60, 10);
+            let secs = parseInt(timer % 60, 10);
+
+            if(timerDisplay) {
+                timerDisplay.textContent = (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs);
+            }
+
+            let percentage = (timer / total * 100);
+
+            // This moves the bar and the car together
+            if(progressBar) progressBar.style.width = percentage + "%";
+            if(carMarker) carMarker.style.left = percentage + "%";
+
+            if (--timer < 0) {
+                clearInterval(countdown);
+                document.querySelector('.tracker-status').textContent = "Driver has arrived!";
+            }
+        }, 1000);
+    }
+
+    // This makes the car start driving as soon as the page opens
+    document.addEventListener('DOMContentLoaded', function() {
+        startDeliveryTimer(30);
+    });
+
 </script>
 
 </body>

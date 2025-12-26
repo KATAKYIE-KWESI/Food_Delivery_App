@@ -154,3 +154,10 @@ SERVER_EMAIL = DEFAULT_FROM_EMAIL
 # paystack config
 PAYSTACK_PUBLIC_KEY = "pk_test_1379197c153b84ae1fccf5a41f88f7cc131337d2"
 PAYSTACK_SECRET_KEY = "sk_test_4c1fd9c08a5cfd4fd7b48e5fff358554baa264c3"
+
+#Hugging face config
+import os
+HF_TOKEN = config("HF_TOKEN", default=None)
+
+# Groq API
+GROQ_API_KEY = "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"

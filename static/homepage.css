@@ -1387,3 +1387,78 @@ body.modal-open .navbar {
         50% { transform: translateX(-5px); }
     }
 }
+
+.ai-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    font-family: 'Poppins', sans-serif;
+}
+
+.ai-toggle-btn {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: tomato;
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.ai-chat-card {
+    display: none; /* Hidden by default */
+    width: 300px;
+    height: 400px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    flex-direction: column;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.ai-header {
+    background: tomato;
+    color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+}
+
+.ai-messages {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.bot-msg { background: #f0f0f0; padding: 8px 12px; border-radius: 10px; align-self: flex-start; }
+.user-msg { background: #ffe4e1; padding: 8px 12px; border-radius: 10px; align-self: flex-end; }
+
+.ai-input-area {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #eee;
+}
+
+.ai-input-area input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 5px;
+}
+
+.ai-input-area button {
+    background: none;
+    border: none;
+    color: tomato;
+    cursor: pointer;
+    font-size: 18px;
+}
