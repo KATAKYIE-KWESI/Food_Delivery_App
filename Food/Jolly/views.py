@@ -298,32 +298,48 @@ def terms(request):
     return render(request, 'terms.html')
 
 
-
 from groq import Groq
 from django.http import JsonResponse
 from django.conf import settings
 
+
 def ai_chatbot(request):
-    user_message = request.GET.get("message", "").strip()
+    user_message = request.GET.get("message", "").strip().lower()
 
     if not user_message:
         return JsonResponse({"reply": "Akwaaba! 👋 I'm JollyBot! How can I help? 😊"})
 
+    # ✅ Check for order keywords - Just give instructions
+    order_words = ['order', 'buy', 'checkout', 'pay', 'delivery', 'deliver', 'purchase']
+
+    if any(word in user_message for word in order_words):
+        return JsonResponse({
+            "reply": "Perfect! 🛒 To place your order:\n1. Browse our Menu\n2. Add items to Cart\n3. Go to Checkout\n\nClick the Menu button above to get started! 😊"
+        })
+
     rules = """
-You're JollyBot, friendly AI for JollyFoods in Kumasi! 🍽️
+You're JollyBot, friendly AI for JollyFoods! 🍽️
 
-Be warm, fun, use emojis 😊 Chat about anything. Keep replies 2-3 sentences.
+Be warm, use emojis 😊 Chat about anything.
 
-MENU: Salad GHS12-14, Jollof/Pasta GHS15, Chicken GHS18, Fried Rice GHS13, Soda GHS2, Juice GHS5
+MENU (ONLY THESE):
+- Garden Salad: GHS 12
+- Caesar Salad: GHS 14  
+- Jollof Rice: GHS 15
+- Pasta: GHS 15
+- Grilled Chicken: GHS 18
+- Fried Rice: GHS 13
+- Soda: GHS 2
+- Juice: GHS 5
 
-🚫 NO DISCOUNTS - prices fixed. Say: "Can't discount! But our food is worth it! 😊"
+🚫 NO DISCOUNTS
+🚫 If NOT on menu, say we don't have it
 
-Open 10am-10pm, Delivery GHS5
+When customers ask about ordering, tell them to browse the menu and add to cart.
 """
 
     try:
         client = Groq(api_key=settings.GROQ_API_KEY)
-
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
