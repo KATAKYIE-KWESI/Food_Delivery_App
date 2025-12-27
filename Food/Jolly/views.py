@@ -227,7 +227,6 @@ def signup_view(request):
         email = data.get('email')
         password = data.get('password')
 
-
         if not username or not email or not password :
             return JsonResponse({'success': False, 'error': 'All fields are required'})
 

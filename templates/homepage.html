@@ -50,7 +50,7 @@
             </button>
 
             <div class="user-dropdown">
-                <a href="#"><i class="fa-solid fa-user"></i> Profile</a>
+
                 <a href="{% url 'cart' %}"><i class="fa-solid fa-shopping-bag"></i> Orders</a>
                 <a href="{% url 'logout' %}"><i class="fa-solid fa-sign-out"></i> Logout</a>
             </div>
@@ -632,6 +632,8 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
     const confirmPassword = document.getElementById('signupConfirmPassword').value;
     const submitBtn = signupFormSubmit.querySelector('.auth-btn');
 
+
+
     if (password !== confirmPassword) {
         showMessage(signupForm, 'Passwords do not match!', true);
         return;
@@ -655,6 +657,8 @@ document.querySelector('.shopping-cart').addEventListener('click', () => {
                 username: username,
                 email: email,
                 password: password,
+
+
 
             })
         });
