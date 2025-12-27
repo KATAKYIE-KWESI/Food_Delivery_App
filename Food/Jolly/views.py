@@ -15,7 +15,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 
 from .models import CartItem, Profile, SecurityLog # Ensure SecurityLog is imported
-from .utils.sms import send_sms
+
 
 def homepage(request):
     menu_list = [
@@ -101,6 +101,9 @@ def payment(request):
     tax = subtotal * tax_rate
     final_total = subtotal + delivery_amount + tax
 
+    if request.method == "POST":
+        request.session['paid'] = True  # store in session after payment
+
     context = {
         'total_ghs': final_total,
         # We multiply by 100 to get Pesewas for Paystack
@@ -122,12 +125,18 @@ def cart(request):
         cart_items = CartItem.objects.filter(session_key=session_key)
 
     total = sum(item.get_total_price() for item in cart_items)
+
+    # Check if user has paid
+    paid = request.session.pop('paid', False)
+
     context = {
         'cart_items': cart_items,
         'cart_total': total,
-        'cart_count': sum(item.quantity for item in cart_items)
+        'cart_count': sum(item.quantity for item in cart_items),
+        'paid': paid,
     }
     return render(request, 'cart.html', context)
+
 
 @require_POST
 def add_to_cart(request):
@@ -217,9 +226,9 @@ def signup_view(request):
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
-        phone = data.get('phone')
 
-        if not username or not email or not password or not phone:
+
+        if not username or not email or not password :
             return JsonResponse({'success': False, 'error': 'All fields are required'})
 
         if len(password) < 6:
@@ -239,7 +248,7 @@ def signup_view(request):
 
         user = User.objects.create_user(username=username, email=email, password=password)
         profile, _ = Profile.objects.get_or_create(user=user)
-        profile.phone_number = phone
+
         profile.save()
 
         login(request, user)
@@ -248,10 +257,10 @@ def signup_view(request):
         if session_key:
             CartItem.objects.filter(session_key=session_key).update(user=user, session_key=None)
 
-        message = f"Welcome {username} to JollyFoods! 🍔 Enjoy your first order!"
-        send_sms(phone, message)
 
-        return JsonResponse({'success': True, 'message': 'Account created successfully! SMS sent.'})
+
+
+        return JsonResponse({'success': True, 'message': 'Account created successfully! .'})
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)

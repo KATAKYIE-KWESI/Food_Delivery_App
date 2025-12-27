@@ -10,44 +10,40 @@
 </head>
 <body>
 
-<!---------------------------------Nav Bar  ------------------------------------------->
+<!-- Nav Bar -->
 <div class="navbar">
     <a href="{% url 'homepage' %}" class="logo">JollyFoods.</a>
-
     <ul class="navbar-menu">
         <li><a href="{% url 'homepage' %}">Home</a></li>
         <li><a href="{% url 'menu' %}">Menu</a></li>
         <li><a href="{% url 'contact' %}">Contact Us</a></li>
         <li><a href="{% url 'payment' %}">Payment</a></li>
     </ul>
-
     <div class="hamburger">
-
         <div class="shopping-cart">
             <a href="{% url 'cart' %}">
                 <i class="fa-solid fa-basket-shopping"></i>
                 <span class="cart-badge" id="cartBadge">{{ cart_count }}</span>
             </a>
         </div>
-
     </div>
 </div>
 
-<!-------------------CART SECTION------------------>
-<div class="cart-container">
-
-   <div class="delivery-tracker" id="deliveryTracker">
-    <div class="tracker-header">
-        <span><i class="fa-solid fa-clock"></i> Arriving in</span>
-        <span id="timerText">30:00</span>
-    </div>
-    <div class="progress-container">
-        <div class="progress-bar" id="progressBar"></div>
-        <div class="car-marker" id="carMarker">
-            <i class="fa-solid fa-car-side"></i>
+<!-- Cart Section -->
+<div class="cart-container" id="cartContainer" data-paid="{{ paid|yesno:'true,false' }}">
+    <!-- Delivery Tracker -->
+    <div class="delivery-tracker" id="deliveryTracker">
+        <div class="tracker-header">
+            <span><i class="fa-solid fa-clock"></i> Arriving in</span>
+            <span id="timerText">02:00</span>
         </div>
-    </div>
-    <p class="tracker-status">Chef is preparing your Jollof!</p>
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="car-marker" id="carMarker">
+                <i class="fa-solid fa-car-side"></i>
+            </div>
+        </div>
+        <p class="tracker-status">Chef is preparing your Jollof!</p>
     </div>
 
     <h1 class="cart-title">Your Shopping Cart</h1>
@@ -58,12 +54,10 @@
             {% for item in cart_items %}
             <div class="cart-item" data-item-id="{{ item.id }}">
                 <img src="{% static 'assets/' %}{{ item.food_image }}" alt="{{ item.food_name }}">
-
                 <div class="item-details">
                     <h3>{{ item.food_name }}</h3>
                     <p class="item-price">${{ item.food_price }}</p>
                 </div>
-
                 <div class="item-quantity">
                     <button class="qty-btn minus-btn" data-item-id="{{ item.id }}">
                         <i class="fa-solid fa-minus"></i>
@@ -73,11 +67,9 @@
                         <i class="fa-solid fa-plus"></i>
                     </button>
                 </div>
-
                 <div class="item-total">
                     <p>${{ item.get_total_price }}</p>
                 </div>
-
                 <button class="remove-btn" data-item-id="{{ item.id }}">
                     <i class="fa-solid fa-trash"></i>
                 </button>
@@ -105,7 +97,7 @@
                 <span id="total">${{ cart_total|add:5 }}</span>
             </div>
 
-            <button class="checkout-btn">Proceed to Checkout</button>
+            <button class="checkout-btn" data-url="{% url 'payment' %}">Proceed to Checkout</button>
             <a href="{% url 'homepage' %}" class="continue-shopping">
                 <i class="fa-solid fa-arrow-left"></i> Continue Shopping
             </a>
@@ -121,218 +113,20 @@
     {% endif %}
 </div>
 
+<!-- Thank You Message -->
+<div id="thankYouMessage" style="display:none;">
+    Thank you! Your order has been delivered.
+</div>
+
+<script src="{% static 'scripts/cart.js' %}"></script>
+
+<!-- Initialize Timer -->
 <script>
-//  Get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-const csrftoken = getCookie('csrftoken');
-
-// Update cart totals
-function updateCartTotals() {
-    let subtotal = 0;
-    document.querySelectorAll('.cart-item').forEach(item => {
-        const quantity = parseInt(item.querySelector('.quantity').textContent);
-        const price = parseFloat(item.querySelector('.item-price').textContent.replace('$', ''));
-        const itemTotal = quantity * price;
-        item.querySelector('.item-total p').textContent = `$${itemTotal.toFixed(2)}`;
-        subtotal += itemTotal;
+    document.addEventListener('DOMContentLoaded', () => {
+        const cartContainer = document.getElementById('cartContainer');
+        const paid = cartContainer.dataset.paid === 'true';
+        if (paid) startDeliveryTimer(2); // 2 mins for testing
     });
-
-    const tax = subtotal * 0.10;
-    const deliveryFee = 5.00;
-    const total = subtotal + tax + deliveryFee;
-
-    document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
-    document.getElementById('tax').textContent = `$${tax.toFixed(2)}`;
-    document.getElementById('total').textContent = `$${total.toFixed(2)}`;
-}
-
-     // Update quantity
-
-document.querySelectorAll('.plus-btn, .minus-btn').forEach(btn => {
-    btn.addEventListener('click', async function() {
-        const itemId = this.dataset.itemId;
-        const cartItem = this.closest('.cart-item');
-        const quantityEl = cartItem.querySelector('.quantity');
-        let quantity = parseInt(quantityEl.textContent);
-
-        if (this.classList.contains('plus-btn')) {
-            quantity++;
-        } else if (this.classList.contains('minus-btn') && quantity > 1) {
-            quantity--;
-        } else if (quantity === 1 && this.classList.contains('minus-btn')) {
-            if (confirm('Remove this item from cart?')) {
-                await removeItem(itemId);
-            }
-            return;
-        }
-
-        quantityEl.textContent = quantity;
-        updateCartTotals();
-
-        // Update on server
-
-        await fetch('/cart/update/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({
-                item_id: itemId,
-                quantity: quantity
-            })
-        });
-    });
-});
-
-// Remove item
-
-document.querySelectorAll('.remove-btn').forEach(btn => {
-    btn.addEventListener('click', async function() {
-        if (confirm('Remove this item from cart?')) {
-            const itemId = this.dataset.itemId;
-            await removeItem(itemId);
-        }
-    });
-});
-
-async function removeItem(itemId) {
-    const response = await fetch('/cart/remove/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrftoken
-        },
-        body: JSON.stringify({ item_id: itemId })
-    });
-
-
-    if (response.ok) {
-
-        const data = await response.json();
-        if (data.success) {
-            // Show success message
-            showNotification(data.message);
-        }
-    }
-
-}
-
-// Checkout button
-document.querySelector('.checkout-btn')?.addEventListener('click', function() {
-    window.location.href = "{% url 'payment' %}";
-});
-
-    // Show notification
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #4CAF50;
-        color: white;
-        padding: 15px 25px;
-        border-radius: 5px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 2000);
-}
-
-// Add CSS animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(400px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(400px); opacity: 0; }
-    }
-`;
-document.head.appendChild(style);
-
-<!-- Script for time for delivery-->
-function startDeliveryTimer(durationInMinutes) {
-    let timer = durationInMinutes * 60;
-    const timerDisplay = document.getElementById('timerText');
-    const progressBar = document.getElementById('progressBar');
-    const carMarker = document.getElementById('carMarker'); // Get the car
-    const total = durationInMinutes * 60;
-
-    setInterval(function () {
-        let mins = parseInt(timer / 60, 10);
-        let secs = parseInt(timer % 60, 10);
-        timerDisplay.textContent = (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs);
-
-        let percentage = (timer / total * 100);
-
-        // Move both at the same time
-        progressBar.style.width = percentage + "%";
-        carMarker.style.left = percentage + "%";
-
-        if (--timer < 0) {
-            timer = 0;
-            document.querySelector('.tracker-status').textContent = "Driver has arrived!";
-        }
-    }, 1000);
-}
-    function startDeliveryTimer(durationInMinutes) {
-        let timer = durationInMinutes * 60;
-        const timerDisplay = document.getElementById('timerText');
-        const progressBar = document.getElementById('progressBar');
-        const carMarker = document.getElementById('carMarker');
-        const total = durationInMinutes * 60;
-
-        const countdown = setInterval(function () {
-            let mins = parseInt(timer / 60, 10);
-            let secs = parseInt(timer % 60, 10);
-
-            if(timerDisplay) {
-                timerDisplay.textContent = (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs);
-            }
-
-            let percentage = (timer / total * 100);
-
-            // This moves the bar and the car together
-            if(progressBar) progressBar.style.width = percentage + "%";
-            if(carMarker) carMarker.style.left = percentage + "%";
-
-            if (--timer < 0) {
-                clearInterval(countdown);
-                document.querySelector('.tracker-status').textContent = "Driver has arrived!";
-            }
-        }, 1000);
-    }
-
-    // This makes the car start driving as soon as the page opens
-    document.addEventListener('DOMContentLoaded', function() {
-        startDeliveryTimer(30);
-    });
-
 </script>
 
 </body>

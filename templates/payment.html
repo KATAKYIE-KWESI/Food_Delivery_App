@@ -134,6 +134,7 @@
     </div>
 </div>
 
+
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
     // Payment method selection
@@ -144,25 +145,59 @@
         });
     });
 
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                cookie = cookie.trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
     // Paystack payment
     function payWithPaystack() {
         let handler = PaystackPop.setup({
             key: '{{ paystack_public_key }}',
-            amount: {{ paystack_amount }},
+            amount: {{ paystack_amount }}, // in pesewas
             email: '{{ request.user.email|default:"customer@jollyfoods.com" }}',
             currency: 'GHS',
             ref: 'JF_' + Math.floor((Math.random() * 1000000000) + 1),
             callback: function(response) {
-                alert('Success! Reference: ' + response.reference);
-                window.location.href = "{% url 'homepage' %}";
+                // Payment succeeded ✅ inform backend
+                fetch("{% url 'payment' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({ paid: true })
+                })
+                .then(res => {
+                    // Redirect to cart after backend sets session
+                    window.location.href = "{% url 'cart' %}";
+                })
+                .catch(err => {
+                    alert("Payment succeeded but server failed to update. Try refreshing cart.");
+                    console.error(err);
+                    window.location.href = "{% url 'cart' %}";
+                });
             },
             onClose: function() {
-                alert('Window closed.');
+                alert('Payment window closed.');
             }
         });
         handler.openIframe();
     }
 </script>
+
 
 </body>
 </html>
