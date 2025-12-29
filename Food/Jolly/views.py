@@ -15,6 +15,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 
 from .models import CartItem, Profile, SecurityLog # Ensure SecurityLog is imported
+from .utils.telegram import send_telegram_alert
 
 
 def homepage(request):
@@ -305,29 +306,31 @@ def logout_view(request):
 def terms(request):
     return render(request, 'terms.html')
 
-
-from groq import Groq
 from django.http import JsonResponse
 from django.conf import settings
+from groq import Groq
+import traceback
 
+# Initialize Groq client once
+client = Groq(api_key=settings.GROQ_API_KEY)
 
 def ai_chatbot(request):
     user_message = request.GET.get("message", "").strip().lower()
 
+    # If no message, return greeting
     if not user_message:
         return JsonResponse({"reply": "Akwaaba! 👋 I'm JollyBot! How can I help? 😊"})
 
-    # ✅ Check for order keywords - Just give instructions
+    # Check for order-related keywords
     order_words = ['order', 'buy', 'checkout', 'pay', 'delivery', 'deliver', 'purchase']
-
     if any(word in user_message for word in order_words):
         return JsonResponse({
             "reply": "Perfect! 🛒 To place your order:\n1. Browse our Menu\n2. Add items to Cart\n3. Go to Checkout\n\nClick the Menu button above to get started! 😊"
         })
 
+    # AI rules
     rules = """
 You're JollyBot, friendly AI for JollyFoods! 🍽️
-
 Be warm, use emojis 😊 Chat about anything.
 
 MENU (ONLY THESE):
@@ -347,19 +350,59 @@ When customers ask about ordering, tell them to browse the menu and add to cart.
 """
 
     try:
-        client = Groq(api_key=settings.GROQ_API_KEY)
+        # Use a valid Groq model
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": rules},
                 {"role": "user", "content": user_message}
-            ],
-            max_tokens=120,
-            temperature=0.8,
+            ]
         )
 
-        return JsonResponse({"reply": response.choices[0].message.content})
+        # Extract reply
+        reply = response.choices[0].message.content
+        return JsonResponse({"reply": reply})
 
     except Exception as e:
-        print("ERROR:", str(e))
-        return JsonResponse({"reply": "Oops! Try again? 😅"}, status=500)
+        # Print full traceback for debugging
+        print("❌ Groq API ERROR:")
+        traceback.print_exc()
+
+        # Handle specific common issues
+        error_message = str(e)
+        if "Connection" in error_message or "timeout" in error_message:
+            user_reply = "Hmm 😅 I'm having trouble connecting to the AI service. Please try again in a moment."
+        else:
+            user_reply = "Oops! Something went wrong. Try again? 😅"
+
+        return JsonResponse({"reply": user_reply}, status=500)
+
+
+# Geolocation view
+def update_cart_location(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        lat = data.get('lat')
+        lon = data.get('lon')
+
+        # Logic: Update all items in the current user's cart
+        if request.user.is_authenticated:
+            updated = CartItem.objects.filter(user=request.user).update(lat=lat, lon=lon)
+            return JsonResponse({'status': 'success', 'updated_count': updated})
+
+        return JsonResponse({'status': 'error', 'message': 'User not logged in'}, status=403)
+
+
+# In your checkout view
+def checkout_view(request):
+    # Grab the location from the first item in the cart
+    first_item = CartItem.objects.filter(user=request.user).first()
+
+    if first_item and first_item.lat:
+        maps_link = f"https://www.google.com/maps?q={first_item.lat},{first_item.lon}"
+        location_msg = f"📍 [View on Google Maps]({maps_link})"
+    else:
+        location_msg = "No location shared."
+
+    # Your Telegram alert
+    send_telegram_alert(f"🍔 *New Order!* \nCustomer: {request.user.username}\n{location_msg}")

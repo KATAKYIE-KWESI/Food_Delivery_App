@@ -9,7 +9,7 @@ from .models import SecurityLog, CartItem
 # --- Cart Item Admin ---
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ('food_name', 'food_price', 'quantity', 'get_total_price', 'user', 'session_key', 'added_at')
+    list_display = ('food_name', 'food_price', 'quantity','lat', 'lon', 'get_total_price', 'user', 'session_key', 'added_at')
     list_filter = ('added_at',)
     search_fields = ('food_name', 'user__username', 'session_key')
 
