@@ -139,3 +139,29 @@ function startDeliveryTimer(durationInMinutes) {
 }
 
 window.startDeliveryTimer = startDeliveryTimer;
+
+
+
+// GeoLocation 
+function shareLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const coords = {
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude
+            };
+
+            // This sends the GPS to your Django view
+            fetch('/update-cart-location/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(coords)
+            }).then(() => {
+                alert("Location shared! Your driver can now find you.");
+            });
+        });
+    }
+}

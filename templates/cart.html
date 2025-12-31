@@ -3,6 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shopping Cart - JollyFoods</title>
     <link rel="stylesheet" href="{% static 'homepage.css' %}">
     <link rel="stylesheet" href="{% static 'cart.css' %}">
@@ -97,12 +98,75 @@
                 <span id="total">${{ cart_total|add:5 }}</span>
             </div>
 
-            <button class="checkout-btn" data-url="{% url 'payment' %}">Proceed to Checkout</button>
+            <button class="checkout-btn" id="checkoutBtn" data-url="{% url 'payment' %}" disabled>
+                Proceed to Checkout
+            </button>
+            <p class="checkout-warning" id="checkoutWarning">
+                <i class="fa-solid fa-info-circle"></i> Please add delivery details below to checkout
+            </p>
             <a href="{% url 'homepage' %}" class="continue-shopping">
                 <i class="fa-solid fa-arrow-left"></i> Continue Shopping
             </a>
         </div>
     </div>
+
+    <!-- Delivery Location Section -->
+    <div class="delivery-location-section">
+        <div class="section-header">
+            <div class="delivery-icon">🚚</div>
+            <div class="section-header-text">
+                <h2>Delivery Details <span class="required-badge">REQUIRED</span></h2>
+                <p>Where should we deliver your food?</p>
+            </div>
+        </div>
+
+        <div class="info-box">
+            💡 Our rider will call you when arriving
+        </div>
+
+        <button type="button" id="loc-btn" class="quick-location-btn" onclick="requestLocation()">
+            <span id="button-text">📍 Share My Location</span>
+        </button>
+
+        <div class="divider">
+            <span>Then add your contact info</span>
+        </div>
+
+        <div class="manual-address-form">
+            <div class="form-group">
+                <label for="phone">Phone Number <span class="required">*</span></label>
+                <div class="phone-input-group">
+                    <select id="phone-prefix" class="phone-prefix">
+                        <option value="+233" selected>+233</option>
+                    </select>
+                    <input type="tel" id="phone" class="phone-number" placeholder="24 123 4567" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="landmark">Nearby Landmark <span class="required">*</span></label>
+                <input type="text" id="landmark" placeholder="e.g., Melcom, KFC, Shell Station" required>
+            </div>
+
+            <div class="form-group">
+                <label for="directions">How to find you</label>
+                <textarea id="directions" placeholder="e.g., Yellow gate, call when nearby..."></textarea>
+            </div>
+
+            <button type="button" class="quick-location-btn" onclick="saveDeliveryDetails()">
+                ✓ Confirm Delivery Details
+            </button>
+        </div>
+
+        <div id="address-display" class="delivery-address-display">
+            <div class="address-header">✓ Ready for Delivery</div>
+            <div id="address-text" class="address-details"></div>
+            <button class="change-btn" onclick="changeAddress()">Change Details</button>
+        </div>
+
+        <div id="loc-status" class="status-message"></div>
+    </div>
+
     {% else %}
     <div class="empty-cart">
         <i class="fa-solid fa-cart-shopping"></i>
@@ -118,14 +182,206 @@
     Thank you! Your order has been delivered.
 </div>
 
+<!-- Hidden form fields -->
+<input type="hidden" id="id_lat" name="latitude">
+<input type="hidden" id="id_lon" name="longitude">
+<input type="hidden" id="id_phone" name="phone">
+<input type="hidden" id="id_landmark" name="landmark">
+<input type="hidden" id="id_directions" name="directions">
+
 <script src="{% static 'scripts/cart.js' %}"></script>
 
-<!-- Initialize Timer -->
+<!-- Delivery Location Script -->
 <script>
+    let deliveryDetailsConfirmed = false;
+
+    function requestLocation() {
+        const button = document.getElementById('loc-btn');
+        const buttonText = document.getElementById('button-text');
+        const status = document.getElementById('loc-status');
+
+        if (!navigator.geolocation) {
+            showStatus("Browser doesn't support location.", 'info');
+            return;
+        }
+
+        button.disabled = true;
+        buttonText.innerHTML = '<span class="spinner"></span> Getting Exact GPS...';
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+
+                document.getElementById('id_lat').value = lat;
+                document.getElementById('id_lon').value = lon;
+
+                const googleMapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+                status.innerHTML = `
+                    <div style="margin-bottom: 10px;">✅ GPS Lock Acquired!</div>
+                    <a href="${googleMapsLink}" target="_blank"
+                       style="display: block; background: #007bff; color: white; padding: 10px; border-radius: 8px; text-decoration: none; text-align: center; font-weight: bold;">
+                       📍 Click to Verify My Pin
+                    </a>
+                `;
+                status.className = "status-message success show";
+
+                button.style.background = '#28a745';
+                buttonText.innerHTML = '✓ Coordinates Captured';
+                button.disabled = false;
+            },
+            (err) => {
+                button.disabled = false;
+                buttonText.textContent = '📍 Share My Location';
+                showStatus("Signal weak. Please step outside for exact location.", 'error');
+            },
+            options
+        );
+    }
+
+    function saveDeliveryDetails() {
+        const phonePrefix = document.getElementById('phone-prefix').value;
+        const phone = document.getElementById('phone').value.trim();
+        const landmark = document.getElementById('landmark').value.trim();
+        const directions = document.getElementById('directions').value.trim();
+        const lat = document.getElementById('id_lat').value;
+        const lon = document.getElementById('id_lon').value;
+
+        // Validation
+        if (!lat || !lon) {
+            showStatus("Please share your location first!", "error");
+            return;
+        }
+
+        if (!phone || !landmark) {
+            showStatus("Phone and Landmark are required!", "error");
+            return;
+        }
+
+        const fullPhone = phonePrefix + phone;
+
+        const data = {
+            lat: lat,
+            lon: lon,
+            phone: fullPhone,
+            landmark: landmark,
+            directions: directions
+        };
+
+        document.getElementById('address-text').innerHTML = `
+            <div><strong>Phone:</strong> ${fullPhone}</div>
+            <div><strong>Landmark:</strong> ${landmark}</div>
+            <div><small>📍 Precise GPS coordinates saved</small></div>
+        `;
+        document.getElementById('address-display').classList.add('show');
+        document.querySelector('.manual-address-form').style.display = 'none';
+        document.getElementById('loc-btn').style.display = 'none';
+        document.querySelector('.divider').style.display = 'none';
+
+        deliveryDetailsConfirmed = true;
+        enableCheckoutButton();
+
+        sendToDjango(data);
+    }
+
+    function sendToDjango(data) {
+        fetch('/update-cart-location/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(resData => {
+            showStatus("✅ Order details synced to server!", "success");
+        })
+        .catch(err => {
+            console.error("Error:", err);
+            showStatus("Error syncing to server.", "error");
+        });
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function showStatus(message, type) {
+        const status = document.getElementById('loc-status');
+        status.textContent = message;
+        status.className = `status-message ${type} show`;
+    }
+
+    function changeAddress() {
+        document.getElementById('address-display').classList.remove('show');
+        document.querySelector('.manual-address-form').style.display = 'block';
+        document.getElementById('loc-btn').style.display = 'block';
+        document.querySelector('.divider').style.display = 'block';
+        deliveryDetailsConfirmed = false;
+        disableCheckoutButton();
+    }
+
+    function enableCheckoutButton() {
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const checkoutWarning = document.getElementById('checkoutWarning');
+        if (checkoutBtn) {
+            checkoutBtn.disabled = false;
+            checkoutBtn.style.opacity = '1';
+            checkoutBtn.style.cursor = 'pointer';
+            if (checkoutWarning) checkoutWarning.style.display = 'none';
+        }
+    }
+
+    function disableCheckoutButton() {
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const checkoutWarning = document.getElementById('checkoutWarning');
+        if (checkoutBtn) {
+            checkoutBtn.disabled = true;
+            checkoutBtn.style.opacity = '0.5';
+            checkoutBtn.style.cursor = 'not-allowed';
+            if (checkoutWarning) checkoutWarning.style.display = 'block';
+        }
+    }
+
+    // Initialize on page load
     document.addEventListener('DOMContentLoaded', () => {
         const cartContainer = document.getElementById('cartContainer');
         const paid = cartContainer.dataset.paid === 'true';
-        if (paid) startDeliveryTimer(2); // 2 mins for testing
+        if (paid) startDeliveryTimer(2);
+
+        // Add click handler to checkout button
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        if (checkoutBtn) {
+            checkoutBtn.addEventListener('click', function() {
+                if (!deliveryDetailsConfirmed) {
+                    showStatus("Please add delivery details before checkout!", "error");
+                    document.querySelector('.delivery-location-section').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                } else {
+                    window.location.href = this.dataset.url;
+                }
+            });
+        }
     });
 </script>
 

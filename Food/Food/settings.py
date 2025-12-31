@@ -21,7 +21,11 @@ SECRET_KEY = config('SECRET_KEY')
 # Turn off DEBUG in production
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']  # You can lock to your domain later
+CSRF_TRUSTED_ORIGINS = [
+    'https://postarytenoid-panickingly-marline.ngrok-free.dev',
+]
+
+ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '172.20.10.13','postarytenoid-panickingly-marline.ngrok-free.dev']
 
 # --------------------------
 # Installed Apps

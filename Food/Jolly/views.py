@@ -385,12 +385,16 @@ def update_cart_location(request):
         lat = data.get('lat')
         lon = data.get('lon')
 
-        # Logic: Update all items in the current user's cart
-        if request.user.is_authenticated:
-            updated = CartItem.objects.filter(user=request.user).update(lat=lat, lon=lon)
-            return JsonResponse({'status': 'success', 'updated_count': updated})
+        # This prints directly to your Laptop's PyCharm Terminal
+        print("\n" + "="*40)
+        print("📍 COORDS FROM IPHONE GPS:")
+        print(f"Latitude:  {lat}")
+        print(f"Longitude: {lon}")
+        print(f"Google Maps Link: https://www.google.com/maps?q={lat},{lon}")
+        print("="*40 + "\n")
 
-        return JsonResponse({'status': 'error', 'message': 'User not logged in'}, status=403)
+        return JsonResponse({'status': 'success'})
+
 
 
 # In your checkout view
@@ -398,11 +402,21 @@ def checkout_view(request):
     # Grab the location from the first item in the cart
     first_item = CartItem.objects.filter(user=request.user).first()
 
-    if first_item and first_item.lat:
+    if first_item and first_item.lat and first_item.lon:
+        # Standard Google Maps URL
         maps_link = f"https://www.google.com/maps?q={first_item.lat},{first_item.lon}"
-        location_msg = f"📍 [View on Google Maps]({maps_link})"
+
+        # Markdown for Telegram
+        location_msg = f"📍 [Click to View Delivery Location]({maps_link})"
     else:
-        location_msg = "No location shared."
+        location_msg = "⚠️ No GPS location shared (Manual Landmark only)."
 
     # Your Telegram alert
-    send_telegram_alert(f"🍔 *New Order!* \nCustomer: {request.user.username}\n{location_msg}")
+    message = (
+        f"🍔 *New Order!*\n"
+        f"👤 *Customer:* {request.user.username}\n"
+        f"{location_msg}"
+    )
+
+    send_telegram_alert(message)
+    # ... rest of your view
