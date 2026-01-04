@@ -33,15 +33,23 @@
         <h2>Your Items</h2>
 
         {% for item in cart_items %}
-        <div class="cart-item">
+
+        <div class="cart-item" id="cart-item-{{ item.id }}">
             <img src="{% static 'assets/' %}{{ item.food_image }}" alt="{{ item.food_name }}">
+
             <div class="item-info">
                 <h4>{{ item.food_name }}</h4>
                 <p>${{ item.food_price }}</p>
             </div>
+
             <div class="item-qty">{{ item.quantity }}</div>
             <div class="item-total">${{ item.get_total_price }}</div>
+
+            <button class="delete-btn" onclick="deleteItem('{{ item.id }}')" aria-label="Remove item">
+                <i class="fa-solid fa-trash-can"></i>
+            </button>
         </div>
+
         {% endfor %}
     </div>
 
