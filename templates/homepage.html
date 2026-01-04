@@ -300,8 +300,9 @@
 </footer>
 
 
+<!--------------------------------END OF FOOTER---------------------------------->
 
-
+<!---------------------JAVASCRIPT --------------------------------------------------------------------->
 <script>
 // Scroll to top button functionality
 const scrollToTopBtn = document.getElementById('scrollToTop');
@@ -330,172 +331,6 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
 });
 </script>
 
-<!--------------------------------END OF FOOTER---------------------------------->
-
-<!---------------------JAVASCRIPT --------------------------------------------------------------------->
-<script>
-// Get CSRF token
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-const csrftoken = getCookie('csrftoken');
-
-// Update cart badge
-async function updateCartBadge() {
-    const response = await fetch('/cart/count/');
-    const data = await response.json();
-    const badge = document.querySelector('.shopping-cart .dot');
-    if (data.cart_count > 0) {
-        badge.style.display = 'block';
-        badge.textContent = data.cart_count;
-        badge.style.width = '18px';
-        badge.style.height = '18px';
-        badge.style.display = 'flex';
-        badge.style.alignItems = 'center';
-        badge.style.justifyContent = 'center';
-        badge.style.fontSize = '11px';
-        badge.style.color = 'white';
-    }
-}
-
-// Quantity selector functionality with cart integration
-document.querySelectorAll('.quantity-selector').forEach(selector => {
-    const addBtn = selector.querySelector('.add-btn');
-    const counter = selector.querySelector('.counter');
-    const minusBtn = selector.querySelector('.minus-btn');
-    const plusBtn = selector.querySelector('.plus-btn');
-    const quantity = selector.querySelector('.quantity');
-
-    // Get food item details
-    const foodItem = selector.closest('.food-item');
-    const foodName = foodItem.querySelector('.food-header h3').textContent;
-    const foodPrice = parseFloat(foodItem.querySelector('.food-price').textContent.replace('$', ''));
-    const foodImage = foodItem.querySelector('img').getAttribute('src').split('/').pop();
-
-    let currentQuantity = 1;
-
-    addBtn.addEventListener('click', () => {
-        addBtn.style.display = 'none';
-        counter.style.display = 'flex';
-        currentQuantity = 1;
-        quantity.textContent = currentQuantity;
-    });
-
-    plusBtn.addEventListener('click', () => {
-        currentQuantity++;
-        quantity.textContent = currentQuantity;
-    });
-
-    minusBtn.addEventListener('click', async () => {
-        if(currentQuantity > 1){
-            currentQuantity--;
-            quantity.textContent = currentQuantity;
-        } else {
-            // Add to cart before hiding
-            await addToCart(foodName, foodPrice, foodImage, currentQuantity);
-
-            counter.style.display = 'none';
-            addBtn.style.display = 'flex';
-            currentQuantity = 1;
-            quantity.textContent = currentQuantity;
-        }
-    });
-
-    // Add to cart when counter is visible and user clicks elsewhere
-    counter.addEventListener('blur', async () => {
-        if (counter.style.display === 'flex') {
-            await addToCart(foodName, foodPrice, foodImage, currentQuantity);
-        }
-    }, true);
-});
-
- // Add to cart function
-
-async function addToCart(name, price, image, qty) {
-    try {
-        const response = await fetch('/cart/add/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({
-                name: name,
-                price: price,
-                image: image,
-                quantity: qty
-            })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            // Show success message
-            showNotification(data.message);
-            updateCartBadge();
-        }
-    } catch (error) {
-        console.error('Error adding to cart:', error);
-    }
-}
-
-// Show notification
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #4CAF50;
-        color: white;
-        padding: 15px 25px;
-        border-radius: 5px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        z-index: 1000;
-        animation: slideIn 0.3s ease;
-    `;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 2000);
-}
-
-// Add CSS animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(400px); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(400px); opacity: 0; }
-    }
-`;
-document.head.appendChild(style);
-
-// Update cart badge on page load
-updateCartBadge();
-
-// Make shopping cart clickable
-document.querySelector('.shopping-cart').addEventListener('click', () => {
-    window.location.href = "{% url 'cart' %}";
-});
-</script>
 
 <!-- Include Auth Modal JavaScript -->
 <script>
@@ -883,6 +718,147 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+</script>
+
+<script>
+// ================= UTILS & CSRF =================
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// ================= NOTIFICATION SYSTEM =================
+function showNotification(message) {
+    const existingNote = document.querySelector('.cart-notification');
+    if (existingNote) existingNote.remove();
+
+    const note = document.createElement('div');
+    note.className = 'cart-notification';
+    note.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${message}`;
+
+    note.style.cssText = `
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #333;
+        color: white;
+        padding: 12px 25px;
+        border-radius: 50px;
+        z-index: 10000;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        white-space: nowrap;
+    `;
+
+    document.body.appendChild(note);
+    setTimeout(() => { note.style.transform = 'translateX(-50%) translateY(0)'; }, 100);
+
+    setTimeout(() => {
+        note.style.opacity = '0';
+        note.style.transform = 'translateX(-50%) translateY(20px)';
+        setTimeout(() => note.remove(), 400);
+    }, 2500);
+}
+
+// ================= CART ACTIONS =================
+async function updateCartBadge() {
+    try {
+        const res = await fetch('/cart/count/');
+        const data = await res.json();
+        const badge = document.getElementById('cart-dot-count');
+
+        if (data.cart_count > 0) {
+            badge.style.display = 'flex';
+            badge.textContent = data.cart_count;
+            badge.classList.add('badge-bump');
+            setTimeout(() => badge.classList.remove('badge-bump'), 300);
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch (err) { console.error('Badge error:', err); }
+}
+
+async function addToCart(name, price, image, quantity) {
+    try {
+        const response = await fetch('/cart/add/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ name, price, image, quantity })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            updateCartBadge();
+            if (quantity > 0) showNotification(`${name} added!`);
+        }
+    } catch (error) { console.error('Add error:', error); }
+}
+
+// ================= UI EVENT LISTENERS =================
+document.querySelectorAll('.food-item').forEach(foodItem => {
+    const addBtn = foodItem.querySelector('.add-btn');
+    const counter = foodItem.querySelector('.counter');
+    const minusBtn = foodItem.querySelector('.minus-btn');
+    const plusBtn = foodItem.querySelector('.plus-btn');
+    const quantityEl = foodItem.querySelector('.quantity');
+
+    const name = foodItem.querySelector('.food-header h3').textContent;
+    const priceText = foodItem.querySelector('.food-price').textContent;
+    const price = parseFloat(priceText.replace(/[^\d.]/g, ''));
+    const image = foodItem.querySelector('img').src.split('/').pop();
+
+    let quantity = 0;
+
+    const updateUI = async (e, newQty) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        quantity = newQty;
+        quantityEl.textContent = quantity;
+
+        if (quantity > 0) {
+            addBtn.style.display = 'none';
+            counter.style.display = 'flex';
+        } else {
+            counter.style.display = 'none';
+            addBtn.style.display = 'flex';
+        }
+        await addToCart(name, price, image, quantity);
+    };
+
+    // Use pointerup for better mobile response
+    addBtn.addEventListener('click', (e) => updateUI(e, 1));
+    plusBtn.addEventListener('click', (e) => updateUI(e, quantity + 1));
+    minusBtn.addEventListener('click', (e) => updateUI(e, Math.max(0, quantity - 1)));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateCartBadge();
+    const cartIcon = document.querySelector('.shopping-cart');
+    if (cartIcon) {
+        cartIcon.addEventListener('click', () => { window.location.href = "{% url 'cart' %}"; });
+    }
+});
 </script>
 
 {% include 'ai_chatbot.html' %}

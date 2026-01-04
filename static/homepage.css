@@ -87,14 +87,45 @@ a{
 }
 
 /* Small red dot on shopping cart */
-.hamburger .shopping-cart .dot {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  width: 8px;
-  height: 8px;
-  background-color: tomato;
-  border-radius: 50%;
+position: absolute;
+  top: -8px; /* Lifted slightly higher */
+  right: -10px;
+  background-color: #ff4d4d; /* More vibrant red */
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: transform 0.2s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+  pointer-events: none;
+}
+
+/* The "Bump" effect for the red dot */
+.badge-bump {
+    animation: bump 0.3s ease-out;
+}
+
+@keyframes bump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+/* Ensure the notification looks good on mobile */
+@media (max-width: 768px) {
+    .cart-notification {
+        width: 80%;
+        text-align: center;
+        justify-content: center;
+        bottom: 20px;
+    }
 }
 
 /* Sign-in button */

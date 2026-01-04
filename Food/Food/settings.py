@@ -84,9 +84,9 @@ TEMPLATES = [
 # --------------------------
 WSGI_APPLICATION = 'Food.wsgi.application'
 
-# settings.py
+# Trust the ngrok origin for CSRF (Critical for mobile login/cart)
 CSRF_TRUSTED_ORIGINS = [
-    'https://food-delivery-app-9-ogir.onrender.com'
+    'https://postarytenoid-panickingly-marline.ngrok-free.dev'
 ]
 
 
@@ -170,4 +170,9 @@ GROQ_API_KEY = config("GROQ_API_KEY")
 TELEGRAM_BOT_TOKEN = config('TELEGRAM_BOT_TOKEN')
 TELEGRAM_CHAT_ID = config('TELEGRAM_CHAT_ID')
 
+#Forcing mobile to accept cookies
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = 'None'
 

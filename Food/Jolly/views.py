@@ -9,11 +9,7 @@ from operator import itemgetter
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.conf import settings
-from django.contrib.auth.decorators import login_required
-
 from .models import CartItem, Profile, SecurityLog # Ensure SecurityLog is imported
 from .utils.telegram import send_telegram_alert
 
@@ -162,15 +158,20 @@ def add_to_cart(request):
             if not session_key:
                 request.session.create()
                 session_key = request.session.session_key
-
+        # Change this inside add_to_cart:
             cart_item, created = CartItem.objects.get_or_create(
-                session_key=session_key,
+                user=request.user if request.user.is_authenticated else None,
+                session_key=None if request.user.is_authenticated else session_key,
                 food_name=food_name,
                 defaults={'food_price': food_price, 'food_image': food_image, 'quantity': quantity}
             )
+
             if not created:
-                cart_item.quantity += quantity
-                cart_item.save()
+                if quantity == 0:
+                    cart_item.delete()
+                else:
+                    cart_item.quantity = quantity  # Set it exactly to what the JS says
+                    cart_item.save()
 
         if request.user.is_authenticated:
             cart_count = sum(item.quantity for item in CartItem.objects.filter(user=request.user))
