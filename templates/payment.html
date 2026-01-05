@@ -25,42 +25,25 @@
                 <i class="fa-solid fa-receipt"></i>
                 Your Order
             </h3>
+            {% for item in cart_items %}
             <div class="item">
                 <span class="item-name">
                     <i class="fa-solid fa-circle"></i>
-                    {{ item.food_name }}
+                    {{ item.food_name }} (x{{ item.quantity }})
                 </span>
-                <span class="item-price">GHS 15.00</span>
+                <span class="item-price">GHS {{ item.get_total_price }}</span>
             </div>
-            <div class="item">
-                <span class="item-name">
-                    <i class="fa-solid fa-circle"></i>
-                    Grilled Chicken
-                </span>
-                <span class="item-price">GHS 12.50</span>
-            </div>
-            <div class="item">
-                <span class="item-name">
-                    <i class="fa-solid fa-circle"></i>
-                    Fresh Juice
-                </span>
-                <span class="item-price">GHS 5.00</span>
-            </div>
+            {% endfor %}
         </div>
 
-        <!-- Order Summary -->
         <div class="order-summary">
             <div class="summary-row">
                 <span>Subtotal</span>
-                <span>GHS 00.50</span>
+                <span>GHS {{ subtotal }}</span>
             </div>
             <div class="summary-row">
                 <span>Delivery Fee</span>
-                <span>GHS 3.00</span>
-            </div>
-            <div class="summary-row">
-                <span>Service Fee</span>
-                <span>GHS 2.77</span>
+                <span>GHS {{ delivery_fee }}</span>
             </div>
 
             <div class="summary-divider"></div>

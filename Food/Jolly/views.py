@@ -1,18 +1,26 @@
-
 import re
 import json
-
 from decimal import Decimal
 from itertools import groupby
 from operator import itemgetter
-
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST
 from .models import CartItem, Profile, SecurityLog # Ensure SecurityLog is imported
-from .utils.telegram import send_telegram_alert
+from .utils.telegram import send_telegram_alert, send_telegram_location
 
+#Calculates total price of items in the cart
+def calculate_cart_totals(cart_items):
+    subtotal = sum(item.food_price * item.quantity for item in cart_items)
+    delivery_fee = Decimal('5.00')
+    grand_total = subtotal + delivery_fee
+
+    return {
+        'subtotal': subtotal,
+        'delivery_fee': delivery_fee,
+        'grand_total': grand_total,
+    }
 
 def homepage(request):
     menu_list = [
@@ -87,29 +95,28 @@ def mobile(request):
 
 
 def payment(request):
-    items = CartItem.objects.filter(user=request.user)
+    # Fetch items for logged-in user or guest session
+    if request.user.is_authenticated:
+        items = CartItem.objects.filter(user=request.user)
+    else:
+        session_key = request.session.session_key
+        items = CartItem.objects.filter(session_key=session_key)
 
-    # Calculate subtotal (this is already a Decimal because of your model)
-    subtotal = sum(item.food_price * item.quantity for item in items)
-
-    tax_rate = Decimal('0.10')
-    delivery_amount = Decimal('5.0')
-
-    tax = subtotal * tax_rate
-    final_total = subtotal + delivery_amount + tax
+    # Use the helper function (Single Source of Truth)
+    totals = calculate_cart_totals(items)
 
     if request.method == "POST":
-        request.session['paid'] = True  # store in session after payment
+        request.session['paid'] = True
 
     context = {
-        'total_ghs': final_total,
-        # We multiply by 100 to get Pesewas for Paystack
-        'paystack_amount': int(final_total * 100),
+        'cart_items': items,             # Needed to loop items in payment.html
+        'subtotal': totals['subtotal'],
+        'delivery_fee': totals['delivery_fee'],
+        'total_ghs': totals['grand_total'],
+        'paystack_amount': int(totals['grand_total'] * 100),
         'paystack_public_key': settings.PAYSTACK_PUBLIC_KEY,
     }
     return render(request, 'payment.html', context)
-
-
 
 def cart(request):
     if request.user.is_authenticated:
@@ -121,19 +128,16 @@ def cart(request):
             session_key = request.session.session_key
         cart_items = CartItem.objects.filter(session_key=session_key)
 
-    total = sum(item.get_total_price() for item in cart_items)
-
-    # Check if user has paid
-    paid = request.session.pop('paid', False)
+    totals = calculate_cart_totals(cart_items)
 
     context = {
         'cart_items': cart_items,
-        'cart_total': total,
         'cart_count': sum(item.quantity for item in cart_items),
-        'paid': paid,
+        'cart_total': totals['subtotal'],
+        'grand_total': totals['grand_total'], # Use this in your HTML
+        'paid': request.session.pop('paid', False),
     }
     return render(request, 'cart.html', context)
-
 
 @require_POST
 def add_to_cart(request):
@@ -381,43 +385,41 @@ When customers ask about ordering, tell them to browse the menu and add to cart.
 
 # Geolocation view
 def update_cart_location(request):
-    if request.method == "POST":
+    if request.method == "POST" and request.user.is_authenticated:
         data = json.loads(request.body)
         lat = data.get('lat')
         lon = data.get('lon')
 
-        # This prints directly to your Laptop's PyCharm Terminal
-        print("\n" + "="*40)
-        print("📍 COORDS FROM IPHONE GPS:")
-        print(f"Latitude:  {lat}")
-        print(f"Longitude: {lon}")
-        print(f"Google Maps Link: https://www.google.com/maps?q={lat},{lon}")
-        print("="*40 + "\n")
+        # Save for all cart items (or just first one)
+        CartItem.objects.filter(user=request.user).update(lat=lat, lon=lon)
+
+        print(f"Saved coords for {request.user.username}: {lat}, {lon}")
 
         return JsonResponse({'status': 'success'})
 
 
 
-# In your checkout view
 def checkout_view(request):
-    # Grab the location from the first item in the cart
     first_item = CartItem.objects.filter(user=request.user).first()
 
     if first_item and first_item.lat and first_item.lon:
-        # Standard Google Maps URL
-        maps_link = f"https://www.google.com/maps?q={first_item.lat},{first_item.lon}"
+        lat, lon = first_item.lat, first_item.lon
 
-        # Markdown for Telegram
+        # Send the real location pin
+        send_telegram_location(lat, lon)
+
+        # Send clickable Google Maps link as backup
+        maps_link = f"https://www.google.com/maps?q={lat},{lon}"
         location_msg = f"📍 [Click to View Delivery Location]({maps_link})"
     else:
         location_msg = "⚠️ No GPS location shared (Manual Landmark only)."
 
-    # Your Telegram alert
+    # Compose full order message
     message = (
         f"🍔 *New Order!*\n"
         f"👤 *Customer:* {request.user.username}\n"
         f"{location_msg}"
     )
 
+    # Send the message to Telegram
     send_telegram_alert(message)
-    # ... rest of your view

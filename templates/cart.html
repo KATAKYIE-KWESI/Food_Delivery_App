@@ -22,57 +22,73 @@
     </ul>
 </div>
 
+
 <!-- CART -->
 <div class="cart-container">
 
+<!-- Mobile Home Button (Hidden on Desktop) -->
+<a href="{% url 'homepage' %}" class="home-button">
+    <i class="fa-solid fa-house"></i>
+</a>
+
+<h1 class="cart-title">Shopping Cart</h1>
+
 {% if cart_items %}
 <div class="cart-content">
-
     <!-- CART ITEMS -->
     <div class="cart-items-section">
         <h2>Your Items</h2>
 
         {% for item in cart_items %}
 
-        <div class="cart-item" id="cart-item-{{ item.id }}">
+        <div class="cart-item" data-item-id="{{ item.id }}">
             <img src="{% static 'assets/' %}{{ item.food_image }}" alt="{{ item.food_name }}">
 
             <div class="item-info">
                 <h4>{{ item.food_name }}</h4>
-                <p>${{ item.food_price }}</p>
+                <p class="item-price">${{ item.food_price }}</p>
             </div>
 
-            <div class="item-qty">{{ item.quantity }}</div>
-            <div class="item-total">${{ item.get_total_price }}</div>
+            <!-- QUANTITY CONTROLS -->
+            <div class="item-quantity">
+                <button class="qty-btn minus-btn" data-item-id="{{ item.id }}">−</button>
+                <span class="quantity">{{ item.quantity }}</span>
+                <button class="qty-btn plus-btn" data-item-id="{{ item.id }}">+</button>
+            </div>
 
-            <button class="delete-btn" onclick="deleteItem('{{ item.id }}')" aria-label="Remove item">
-                <i class="fa-solid fa-trash-can"></i>
-            </button>
+            <!-- ITEM TOTAL -->
+            <div class="item-total">
+                <p>${{ item.get_total_price }}</p>
         </div>
+
+        <!-- REMOVE BUTTON -->
+        <button class="remove-btn" data-item-id="{{ item.id }}">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    </div>
 
         {% endfor %}
     </div>
 
-    <!-- SUMMARY -->
-    <div class="cart-summary">
-        <h2>Order Summary</h2>
 
+    <!-- SUMMARY -->
+    <div class="order-summary-container">
         <div class="summary-row">
             <span>Subtotal</span>
-            <span>${{ cart_total }}</span>
+            <span id="subtotal">GHS {{ cart_total }}</span>
         </div>
 
         <div class="summary-row">
             <span>Delivery</span>
-            <span>$5.00</span>
+            <span>GHS 5.00</span>
         </div>
 
         <div class="summary-row total">
             <strong>Total</strong>
-            <strong>${{ cart_total|add:5 }}</strong>
+            <strong id="total">GHS {{ grand_total|floatformat:2 }}</strong>
         </div>
-
-        <!-- DELIVERY LOCATION -->
+    </div>
+            <!-- DELIVERY LOCATION -->
         <div class="delivery-location-section">
             <div class="section-header">
                 <div class="delivery-icon">🚚</div>
@@ -105,13 +121,48 @@
         >
             Add delivery details to checkout
         </button>
+
+            <!-- DELIVERY TIMER SECTION -->
+        <div class="delivery-tracker">
+            <h3>Delivery Tracker</h3>
+            <div class="tracker-bar">
+                <div id="progressBar" class="progress"></div>
+                <div id="carMarker" class="car-marker">🚗</div>
+            </div>
+            <div class="tracker-info">
+                <span id="timerText">00:00</span>
+                <span class="tracker-status">Driver is on the way...</span>
+            </div>
+            <div id="thankYouMessage" class="thank-you-message" style="display:none;">
+                Thank you for ordering!
+            </div>
+        </div>
+
     </div>
 
 </div>
 {% else %}
-<p>Your cart is empty</p>
+<div class="empty-cart-card">
+    <div class="empty-cart-body">
+        <i class="fa-solid fa-utensils empty-icon"></i>
+        <h2>Your cart is empty!</h2>
+        <p>Hungry? Add some delicious meals from our menu and we'll have them delivered in no time.</p>
+        <a href="{% url 'homepage' %}" class="browse-menu-btn">Browse Menu</a>
+    </div>
+</div>
 {% endif %}
 
+</div>
+
+<!-- Confirm Delete Modal -->
+<div id="confirmModal" class="confirm-modal" style="display:none;">
+    <div class="confirm-modal-content">
+        <p id="confirmMessage">Are you sure you want to remove this item?</p>
+        <div class="confirm-modal-buttons">
+            <button id="confirmYes">Yes</button>
+            <button id="confirmNo">No</button>
+        </div>
+    </div>
 </div>
 
 <!-- HIDDEN FIELDS -->
@@ -120,6 +171,21 @@
 
 <script src="{% static 'scripts/cart.js' %}"></script>
 <script src="{% static 'scripts/location.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if paid %}
+            // Start 15-minute delivery timer
+            startDeliveryTimer(1);
+
+            // Disable cart buttons while delivery is in progress
+            document.querySelectorAll('.plus-btn, .minus-btn, .remove-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+        {% endif %}
+    });
+</script>
+
+
 
 </body>
 </html>
