@@ -53,3 +53,31 @@ class SecurityLog(models.Model):
 
     def __str__(self):
         return f"{self.event_type} - {self.ip_address} at {self.timestamp}"
+
+
+#Delivery details for Driver
+class Driver(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.user.username
+
+
+class Delivery(models.Model):
+    driver = models.ForeignKey(Driver, on_delete=models.CASCADE)
+    customer_name = models.CharField(max_length=100)
+    lat = models.FloatField()
+    lng = models.FloatField()
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("new", "New"),
+            ("picked", "Picked"),
+            ("delivered", "Delivered")
+        ],
+        default="new"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.customer_name

@@ -7,8 +7,9 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST
-from .models import CartItem, Profile, SecurityLog # Ensure SecurityLog is imported
+from .models import CartItem, Profile, SecurityLog
 from .utils.telegram import send_telegram_alert, send_telegram_location
+from .models import Delivery
 
 #Calculates total price of items in the cart
 def calculate_cart_totals(cart_items):
@@ -423,3 +424,16 @@ def checkout_view(request):
 
     # Send the message to Telegram
     send_telegram_alert(message)
+
+
+
+#View for driver
+def driver_dashboard(request):
+    deliveries = Delivery.objects.filter(
+        driver=request.user.driver,
+        status="new"
+    )
+
+    return render(request, "driver_dashboard.html", {
+        "deliveries": deliveries
+    })

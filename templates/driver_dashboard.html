@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Driver Dashboard</title>
+</head>
+<body>
+
+<h2>🚚 My New Deliveries</h2>
+
+{% for d in deliveries %}
+  <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+    <p><strong>Customer:</strong> {{ d.customer_name }}</p>
+
+    <a href="https://maps.google.com/?q={{ d.lat }},{{ d.lng }}"
+       target="_blank">
+       📍 Open Map
+    </a>
+  </div>
+{% empty %}
+  <p>No new deliveries</p>
+{% endfor %}
+
+</body>
+</html>

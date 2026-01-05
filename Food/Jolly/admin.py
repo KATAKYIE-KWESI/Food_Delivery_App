@@ -46,3 +46,18 @@ class SecurityLogAdmin(admin.ModelAdmin):
         }
 
         return super().changelist_view(request, extra_context=extra_context)
+
+
+from django.contrib import admin
+from .models import Driver, Delivery
+
+# Make Driver editable in admin
+@admin.register(Driver)
+class DriverAdmin(admin.ModelAdmin):
+    list_display = ('user',)
+
+# Make Delivery editable in admin
+@admin.register(Delivery)
+class DeliveryAdmin(admin.ModelAdmin):
+    list_display = ('customer_name', 'driver', 'status', 'created_at')
+    list_filter = ('status', 'driver')
