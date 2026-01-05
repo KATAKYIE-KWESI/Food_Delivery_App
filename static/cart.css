@@ -18,6 +18,11 @@ body {
     background: transparent !important;
 }
 
+/* Home Button - Hidden on Desktop */
+.home-button {
+    display: none;
+}
+
 .cart-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -30,11 +35,6 @@ body {
     margin-bottom: 30px;
     text-align: left;
     font-weight: 700;
-}
-
-/* Home Button - Hidden on Desktop */
-.home-button {
-    display: none;
 }
 
 /* --- DESKTOP Layout Structure --- */
@@ -620,41 +620,48 @@ body {
         padding-bottom: 80px;
     }
 
+    /* Show home button on mobile - beside logo */
+    .home-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 10px;
+        font-size: 1.2rem;
+        box-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
+        transition: all 0.3s ease;
+        margin-right: 15px;
+    }
+
+    .home-button:active {
+        transform: scale(0.95);
+        box-shadow: 0 1px 5px rgba(255, 107, 53, 0.3);
+    }
+
+    /* Adjust navbar to accommodate home button */
+    .navbar {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+    }
+
+    .navbar .logo {
+        display: flex;
+        align-items: center;
+    }
+
     .cart-container {
         padding: 15px 15px 0 15px;
-        position: relative;
-        padding-top: 70px;
     }
 
     .cart-title {
         font-size: 1.6rem;
         text-align: center;
         margin-bottom: 20px;
-    }
-
-    /* Home Button - Only visible on mobile at top left */
-    .home-button {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: fixed;
-        top: 20px;
-        left: 15px;
-        width: 50px;
-        height: 50px;
-        background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
-        color: white;
-        text-decoration: none;
-        border-radius: 50%;
-        font-size: 1.3rem;
-        z-index: 1000;
-        box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
-        transition: all 0.3s ease;
-    }
-
-    .home-button:active {
-        transform: scale(0.95);
-        box-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
     }
 
     .cart-content {
@@ -894,20 +901,15 @@ body {
 /* EXTRA SMALL MOBILE */
 /* ============================================ */
 @media (max-width: 480px) {
-    .cart-container {
-        padding-top: 65px;
+    .home-button {
+        width: 36px;
+        height: 36px;
+        font-size: 1.1rem;
+        margin-right: 12px;
     }
 
     .cart-title {
         font-size: 1.4rem;
-    }
-
-    .home-button {
-        width: 45px;
-        height: 45px;
-        font-size: 1.2rem;
-        top: 18px;
-        left: 12px;
     }
 
     .cart-item {

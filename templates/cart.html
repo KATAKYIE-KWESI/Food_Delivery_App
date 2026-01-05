@@ -14,6 +14,10 @@
 
 <!-- NAVBAR -->
 <div class="navbar">
+    <!-- Home Button - Only visible on mobile -->
+    <a href="{% url 'homepage' %}" class="home-button">
+        <i class="fa-solid fa-house"></i>
+    </a>
     <a href="{% url 'homepage' %}" class="logo">JollyFoods.</a>
     <ul class="navbar-menu">
         <li><a href="{% url 'homepage' %}">Home</a></li>
@@ -26,15 +30,9 @@
 <!-- CART -->
 <div class="cart-container">
 
-<!-- Mobile Home Button (Hidden on Desktop) -->
-<a href="{% url 'homepage' %}" class="home-button">
-    <i class="fa-solid fa-house"></i>
-</a>
-
-<h1 class="cart-title">Shopping Cart</h1>
-
 {% if cart_items %}
 <div class="cart-content">
+
     <!-- CART ITEMS -->
     <div class="cart-items-section">
         <h2>Your Items</h2>
