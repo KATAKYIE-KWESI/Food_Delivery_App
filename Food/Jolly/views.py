@@ -452,3 +452,140 @@ from .models import CartItem, Profile, Delivery
 
 # ... keep your other imports (calculate_cart_totals, telegram utils, etc.)
 
+def payment(request):
+    """
+    Handles checkout/payment and creates Delivery with all fields populated.
+    Ensures phone and landmark are correctly pulled from the database
+    after the user types them in the cart.
+    """
+    # 1. Get cart items (Authenticated or Session)
+    if request.user.is_authenticated:
+        cart_items = CartItem.objects.filter(user=request.user)
+    else:
+        session_key = request.session.session_key
+        if not session_key:
+            request.session.create()
+            session_key = request.session.session_key
+        cart_items = CartItem.objects.filter(session_key=session_key)
+
+    totals = calculate_cart_totals(cart_items)
+
+    if request.method == "POST":
+        # This session flag triggers the car animation/timer in the cart
+        request.session['paid'] = True
+
+        if cart_items.exists():
+            # Grab the first item to get location and landmark data
+            first_item = cart_items.first()
+
+            # --- UNIFICATION LOGIC START ---
+
+            # A. Get Phone Number
+            # We look at the Profile (since save_delivery_details saves it there)
+            phone = "No Phone"
+            if request.user.is_authenticated:
+                profile, _ = Profile.objects.get_or_create(user=request.user)
+                phone = profile.phone_number if profile.phone_number else "Not provided"
+
+            # B. Get Landmark
+            # We look at 'address_text' in the CartItem model
+            landmark = first_item.address_text if first_item.address_text else "No landmark provided"
+
+            # C. Get Coordinates
+            lat = float(first_item.lat) if first_item.lat else 0.0
+            lng = float(first_item.lon) if first_item.lon else 0.0
+
+            # --- UNIFICATION LOGIC END ---
+
+            # Create the Delivery record for the Driver Dashboard
+            new_delivery = Delivery.objects.create(
+                customer=request.user if request.user.is_authenticated else None,
+                customer_name=request.user.username if request.user.is_authenticated else "Guest",
+                total_amount=totals['grand_total'],
+                lat=lat,
+                lng=lng,
+                phone_number=phone,  # Saved to Delivery.phone_number
+                landmark=landmark,  # Saved to Delivery.landmark
+                status="new"
+            )
+
+            # Important: Clear the cart ONLY after we've used the data to create the delivery
+            cart_items.delete()
+
+            # Send Telegram alerts
+            if lat != 0.0 and lng != 0.0:
+                send_telegram_location(lat, lng)
+
+            send_telegram_alert(
+                f"🍔 *New Order!*\n"
+                f"👤 *Customer:* {new_delivery.customer_name}\n"
+                f"📞 *Phone:* {phone}\n"
+                f"📍 *Landmark:* {landmark}\n"
+                f"💰 *Total:* GHS {totals['grand_total']}"
+            )
+
+            return JsonResponse({'success': True, 'message': 'Order sent to driver!'})
+
+    # Render the payment page (context for Paystack)
+    context = {
+        'cart_items': cart_items,
+        'subtotal': totals['subtotal'],
+        'delivery_fee': totals['delivery_fee'],
+        'total_ghs': totals['grand_total'],
+        'paystack_amount': int(totals['grand_total'] * 100),
+        'paystack_public_key': settings.PAYSTACK_PUBLIC_KEY,
+    }
+    return render(request, 'payment.html', context)
+
+@login_required
+def create_delivery_from_cart(request):
+    """
+    Alternative delivery creation (if separate from payment flow).
+    Ensures phone, landmark, and lat/lng are properly set.
+    """
+    user_cart = CartItem.objects.filter(user=request.user)
+
+    if not user_cart.exists():
+        return redirect('cart')
+
+    totals = calculate_cart_totals(user_cart)
+    first_item = user_cart.first()
+
+    # Ensure profile exists
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    phone = profile.phone_number or "0000000000"
+
+    # Ensure landmark exists
+    landmark = first_item.address_text if first_item.address_text else "No landmark provided"
+
+    lat = float(first_item.lat) if first_item.lat else 0.0
+    lng = float(first_item.lon) if first_item.lon else 0.0
+
+    new_order = Delivery.objects.create(
+        customer=request.user,
+        customer_name=request.user.username,
+        total_amount=totals['grand_total'],
+        lat=lat,
+        lng=lng,
+        phone_number=phone,
+        landmark=landmark,
+        status="new"
+    )
+
+    # Clear cart
+    user_cart.delete()
+
+    # Optional: Send Telegram alert
+    if lat != 0.0 and lng != 0.0:
+        send_telegram_location(lat, lng)
+    send_telegram_alert(
+        f"🍔 New Order!\n"
+        f"👤 Customer: {request.user.username}\n"
+        f"📞 Phone: {phone}\n"
+        f"📍 Landmark: {landmark}\n"
+        f"💰 Total: GHS {totals['grand_total']}"
+    )
+
+    return render(request, "order_success.html", {"order": new_order})
+
+
