@@ -590,3 +590,21 @@ def create_delivery_from_cart(request):
     return render(request, "order_success.html", {"order": new_order})
 
 
+
+@require_POST
+def save_delivery_details(request):
+    data = json.loads(request.body)
+    phone = data.get('phone')
+    landmark = data.get('landmark')
+
+    if request.user.is_authenticated:
+        # Save Landmark to the Cart
+        CartItem.objects.filter(user=request.user).update(address_text=landmark)
+        # Save Phone to the User Profile
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        profile.phone_number = phone
+        profile.save()
+
+    return JsonResponse({'success': True})
+
+
