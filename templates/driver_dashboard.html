@@ -1,24 +1,328 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Driver Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Dashboard - JollyFoods</title>
+    <link rel="stylesheet" href="{% static 'driver_dashboard.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 
-<h2>🚚 My New Deliveries</h2>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <i class="fa-solid fa-motorcycle"></i>
+                <div>
+                    <h1>JollyFoods Driver</h1>
+                    <p class="subtitle">Delivery Dashboard</p>
+                </div>
+            </div>
+            <div class="driver-profile">
+                <div class="driver-info">
+                    <span class="driver-name">{{ driver.name }}</span>
+                    <span class="driver-status online">Online</span>
+                </div>
+                <div class="driver-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            </div>
+        </div>
+    </header>
 
-{% for d in deliveries %}
-  <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
-    <p><strong>Customer:</strong> {{ d.customer_name }}</p>
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-icon deliveries">
+                    <i class="fa-solid fa-box"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ deliveries|length }}</h3>
+                    <p>Pending Deliveries</p>
+                </div>
+            </div>
 
-    <a href="https://maps.google.com/?q={{ d.lat }},{{ d.lng }}"
-       target="_blank">
-       📍 Open Map
-    </a>
-  </div>
-{% empty %}
-  <p>No new deliveries</p>
-{% endfor %}
+            <div class="stat-card">
+                <div class="stat-icon earnings">
+                    <i class="fa-solid fa-dollar-sign"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>GHS {{ total_earnings|default:"0.00" }}</h3>
+                    <p>Today's Earnings</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon completed">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ completed_today|default:"0" }}</h3>
+                    <p>Completed Today</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon rating">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ driver_rating|default:"5.0" }}</h3>
+                    <p>Your Rating</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Quick Actions -->
+        <aside class="quick-actions">
+            <h3>Quick Actions</h3>
+
+            <button class="action-btn toggle-status">
+                <i class="fa-solid fa-power-off"></i>
+                <span>Go Offline</span>
+            </button>
+
+            <button class="action-btn view-history">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Delivery History</span>
+            </button>
+
+            <button class="action-btn earnings-report">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Earnings Report</span>
+            </button>
+
+            <button class="action-btn support">
+                <i class="fa-solid fa-headset"></i>
+                <span>Contact Support</span>
+            </button>
+
+            <!-- Availability Toggle -->
+            <div class="availability-card">
+                <div class="availability-header">
+                    <i class="fa-solid fa-circle-dot"></i>
+                    <span>Availability Status</span>
+                </div>
+                <div class="availability-toggle">
+                    <label class="switch">
+                        <input type="checkbox" id="availabilityToggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                    <span class="status-text">Available for Orders</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Deliveries Section -->
+        <section class="deliveries-section">
+            <div class="section-header">
+                <h2>
+                    <i class="fa-solid fa-truck-fast"></i>
+                    New Deliveries
+                </h2>
+                <div class="filters">
+                    <button class="filter-btn active">All</button>
+                    <button class="filter-btn">Nearby</button>
+                    <button class="filter-btn">Urgent</button>
+                </div>
+            </div>
+
+            <div class="deliveries-container">
+                {% for d in deliveries %}
+                <div class="delivery-card">
+                    <div class="delivery-header">
+                        <div class="order-info">
+                            <span class="order-number">#{{ d.order_id|default:forloop.counter }}</span>
+                            <span class="order-time">
+                                <i class="fa-solid fa-clock"></i>
+                                {{ d.order_time|default:"Just now" }}
+                            </span>
+                        </div>
+                        <div class="priority-badge {{ d.priority|default:'normal' }}">
+                            {{ d.priority|default:"Normal" }}
+                        </div>
+                    </div>
+
+                    <div class="delivery-body">
+                        <div class="customer-section">
+                            <div class="customer-avatar">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <div class="customer-details">
+                                <h4>{{ d.customer_name }}</h4>
+
+                                <!-- Clickable phone -->
+                                {% if d.phone_number %}
+                                <p class="customer-phone">
+                                    <i class="fa-solid fa-phone"></i>
+                                    <a href="tel:{{ d.phone_number }}">{{ d.phone_number }}</a>
+                                </p>
+                                {% else %}
+                                <p class="customer-phone">
+                                    <i class="fa-solid fa-phone"></i> Not provided
+                                </p>
+                                {% endif %}
+
+                                <!-- Clickable Google Maps link -->
+                                {% if d.lat and d.lng %}
+                                <p class="customer-address">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    <a href="https://www.google.com/maps/search/?api=1&query={{ d.lat }},{{ d.lng }}" target="_blank">
+                                        {{ d.landmark|default:"View Location" }}
+                                    </a>
+                                </p>
+                                {% else %}
+                                <p class="customer-address">
+                                    <i class="fa-solid fa-location-dot"></i> Address not provided
+                                </p>
+                                {% endif %}
+                            </div>
+
+
+                        <div class="order-details">
+                            <h5>Order Items</h5>
+                            <div class="order-items">
+                                {% if d.items %}
+                                    {% for item in d.items %}
+                                    <div class="order-item">
+                                        <span class="item-qty">{{ item.quantity }}x</span>
+                                        <span class="item-name">{{ item.name }}</span>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="order-item">
+                                        <span class="item-qty">1x</span>
+                                        <span class="item-name">Food Order</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="delivery-info">
+                            <div class="info-item">
+                                <i class="fa-solid fa-money-bill-wave"></i>
+                                <div>
+                                    <span class="label">Payment</span>
+                                    <span class="value">GHS {{ d.amount|default:"0.00" }}</span>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <i class="fa-solid fa-route"></i>
+                                <div>
+                                    <span class="label">Distance</span>
+                                    <span class="value">{{ d.distance|default:"2.5" }} km</span>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <i class="fa-solid fa-coins"></i>
+                                <div>
+                                    <span class="label">Your Earning</span>
+                                    <span class="value earning">GHS {{ d.driver_earning|default:"5.00" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="delivery-actions">
+                        <a href="https://maps.google.com/?q={{ d.lat }},{{ d.lng }}"
+                           target="_blank"
+                           class="action-btn-primary">
+                            <i class="fa-solid fa-location-arrow"></i>
+                            Navigate
+                        </a>
+                        <button class="action-btn-success" onclick="acceptDelivery('{{ d.id }}')">
+                            <i class="fa-solid fa-check"></i>
+                            Accept
+                        </button>
+                        <button class="action-btn-danger" onclick="declineDelivery('{{ d.id }}')">
+                            <i class="fa-solid fa-times"></i>
+                            Decline
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fa-solid fa-box-open"></i>
+                    </div>
+                    <h3>No New Deliveries</h3>
+                    <p>You're all caught up! New orders will appear here.</p>
+                    <button class="refresh-btn" onclick="location.reload()">
+                        <i class="fa-solid fa-rotate"></i>
+                        Refresh
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation (Mobile) -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active">
+            <i class="fa-solid fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>History</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fa-solid fa-wallet"></i>
+            <span>Earnings</span>
+        </a>
+        <a href="#" class="nav-item">
+            <i class="fa-solid fa-user"></i>
+            <span>Profile</span>
+        </a>
+    </nav>
+
+    <script>
+        // Accept delivery
+        function acceptDelivery(deliveryId) {
+            if (confirm('Accept this delivery?')) {
+                // Add your AJAX call here
+                alert('Delivery accepted! Navigate to customer location.');
+            }
+        }
+
+        // Decline delivery
+        function declineDelivery(deliveryId) {
+            if (confirm('Decline this delivery?')) {
+                // Add your AJAX call here
+                alert('Delivery declined.');
+            }
+        }
+
+        // Availability toggle
+        document.getElementById('availabilityToggle').addEventListener('change', function() {
+            const statusText = document.querySelector('.status-text');
+            const driverStatus = document.querySelector('.driver-status');
+
+            if (this.checked) {
+                statusText.textContent = 'Available for Orders';
+                driverStatus.textContent = 'Online';
+                driverStatus.className = 'driver-status online';
+            } else {
+                statusText.textContent = 'Not Available';
+                driverStatus.textContent = 'Offline';
+                driverStatus.className = 'driver-status offline';
+            }
+        });
+
+        // Auto-refresh every 30 seconds
+        setInterval(() => {
+            console.log('Checking for new deliveries...');
+            // Add your auto-refresh logic here
+        }, 30000);
+    </script>
 
 </body>
 </html>

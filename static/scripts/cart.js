@@ -21,12 +21,20 @@ const csrftoken = getCookie('csrftoken');
 // Update Cart Totals
 // ==============================
 function updateCartTotals() {
+    // Check how many items are left in the HTML
+    const items = document.querySelectorAll('.cart-item');
+
+    // IF NO ITEMS ARE LEFT: Reload the page to trigger Django's {% else %} block
+    if (items.length === 0) {
+        window.location.reload();
+        return; // Stop the rest of the function
+    }
+
     let subtotal = 0;
 
     // 1. Calculate the subtotal from each item row
-    document.querySelectorAll('.cart-item').forEach(item => {
+    items.forEach(item => {
         const quantity = parseInt(item.querySelector('.quantity').textContent);
-        // We handle both '$' or 'GHS' by removing non-numeric characters
         const priceText = item.querySelector('.item-price').textContent;
         const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
 
@@ -42,7 +50,6 @@ function updateCartTotals() {
     const grandTotal = subtotal + deliveryFee;
 
     // 3. Update the Summary section on the screen
-    // Note: We use the IDs 'subtotal' and 'total' - make sure these exist in your HTML
     const subtotalEl = document.getElementById('subtotal');
     const totalEl = document.getElementById('total');
 
@@ -150,9 +157,48 @@ function showNotification(message){
 // ==============================
 // Checkout Button
 // ==============================
-document.querySelector('.checkout-btn')?.addEventListener('click', function(){
+document.querySelector('.checkout-btn')?.addEventListener('click', async function(){
     const url = this.dataset.url;
-    if(url) window.location.href = url;
+    if(!url) return;
+
+    // 1️⃣ Read phone & landmark inputs
+    const phone = document.getElementById('phone')?.value.trim() || '';
+    const landmark = document.getElementById('landmark')?.value.trim() || '';
+
+    // 2️⃣ Send phone & landmark to backend
+    try {
+        if(phone || landmark){
+            await fetch('/cart/save-delivery-details/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json','X-CSRFToken': csrftoken},
+                body: JSON.stringify({phone, landmark})
+            });
+        }
+    } catch (err) {
+        console.error("Failed to save delivery details:", err);
+    }
+
+    // 3️⃣ Send geolocation if available
+    if(navigator.geolocation){
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {timeout: 10000});
+            });
+            await fetch('/cart/update-location/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json','X-CSRFToken': csrftoken},
+                body: JSON.stringify({
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                })
+            });
+        } catch (err) {
+            console.log("Geolocation not available or denied:", err);
+        }
+    }
+
+    // 4️⃣ Redirect to payment page only after above steps
+    window.location.href = url;
 });
 
 // ==============================

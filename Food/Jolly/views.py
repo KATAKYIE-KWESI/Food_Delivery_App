@@ -3,11 +3,14 @@ import json
 from decimal import Decimal
 from itertools import groupby
 from operator import itemgetter
+from django.urls import reverse_lazy
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import LoginView
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.views.decorators.http import require_POST
-from .models import CartItem, Profile, SecurityLog
+from .models import CartItem, Profile, SecurityLog, Driver
 from .utils.telegram import send_telegram_alert, send_telegram_location
 from .models import Delivery
 
@@ -94,30 +97,6 @@ def mobile(request):
     return render(request, 'mobile.html')
 
 
-
-def payment(request):
-    # Fetch items for logged-in user or guest session
-    if request.user.is_authenticated:
-        items = CartItem.objects.filter(user=request.user)
-    else:
-        session_key = request.session.session_key
-        items = CartItem.objects.filter(session_key=session_key)
-
-    # Use the helper function (Single Source of Truth)
-    totals = calculate_cart_totals(items)
-
-    if request.method == "POST":
-        request.session['paid'] = True
-
-    context = {
-        'cart_items': items,             # Needed to loop items in payment.html
-        'subtotal': totals['subtotal'],
-        'delivery_fee': totals['delivery_fee'],
-        'total_ghs': totals['grand_total'],
-        'paystack_amount': int(totals['grand_total'] * 100),
-        'paystack_public_key': settings.PAYSTACK_PUBLIC_KEY,
-    }
-    return render(request, 'payment.html', context)
 
 def cart(request):
     if request.user.is_authenticated:
@@ -428,12 +407,48 @@ def checkout_view(request):
 
 
 #View for driver
+@login_required
 def driver_dashboard(request):
-    deliveries = Delivery.objects.filter(
-        driver=request.user.driver,
-        status="new"
-    )
+    try:
+        driver_profile = request.user.driver
+    except Driver.DoesNotExist:
+        driver_profile = None
+
+    available_deliveries = Delivery.objects.filter(status="new", driver=None)
+    my_current_jobs = Delivery.objects.filter(driver=driver_profile, status="picked") if driver_profile else []
 
     return render(request, "driver_dashboard.html", {
-        "deliveries": deliveries
+        "deliveries": available_deliveries,
+        "my_jobs": my_current_jobs
     })
+
+
+
+
+@login_required
+def accept_delivery(request, delivery_id):
+    # Ensure the user is actually a Driver
+    try:
+        driver_profile = request.user.driver
+    except Driver.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'You are not a registered driver.'})
+
+    # Find the delivery and assign the driver
+    delivery = Delivery.objects.get(id=delivery_id)
+
+    if delivery.driver is None:
+        delivery.driver = driver_profile
+        delivery.status = "picked"
+        delivery.save()
+        return JsonResponse({'success': True, 'message': 'Order accepted!'})
+    else:
+        return JsonResponse({'success': False, 'error': 'Order already taken by another driver.'})
+
+
+import json
+from django.http import JsonResponse
+from .models import CartItem, Profile, Delivery
+
+
+# ... keep your other imports (calculate_cart_totals, telegram utils, etc.)
+
