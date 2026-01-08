@@ -537,6 +537,7 @@ def payment(request):
     }
     return render(request, 'payment.html', context)
 
+
 @login_required
 def create_delivery_from_cart(request):
     """
