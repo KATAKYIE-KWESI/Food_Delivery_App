@@ -86,39 +86,45 @@
             <strong id="total">GHS {{ grand_total|floatformat:2 }}</strong>
         </div>
     </div>
-            <!-- DELIVERY LOCATION -->
-        <div class="delivery-location-section">
-            <div class="section-header">
-                <div class="delivery-icon">🚚</div>
-                <h3>Delivery Details <span class="required-badge">REQUIRED</span></h3>
+
+    <form id="checkoutForm" method="POST" action="{% url 'checkout' %}">
+            {% csrf_token %}
+
+            <!-- DELIVERY LOCATION SECTION -->
+            <div class="delivery-location-section">
+                <div class="section-header">
+                    <div class="delivery-icon">🚚</div>
+                    <h3>Delivery Details <span class="required-badge">REQUIRED</span></h3>
+                </div>
+
+                <button id="loc-btn" class="quick-location-btn">📍 Share My Location</button>
+
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" placeholder="24 123 4567">
+                </div>
+
+                <div class="form-group">
+                    <label>Nearby Landmark *</label>
+                    <input type="text" id="landmark" name="landmark" placeholder="Melcom, KFC, Shell...">
+                </div>
+
+                <!-- Hidden fields for GPS -->
+                <input type="hidden" id="id_lat" name="id_lat">
+                <input type="hidden" id="id_lon" name="id_lon">
+
+                <div id="address-display" class="delivery-address-display"></div>
             </div>
 
-            <button id="loc-btn" class="quick-location-btn">
-                📍 Share My Location
+            <!-- CHECKOUT BUTTON -->
+            <button
+                id="checkoutBtn"
+                class="checkout-btn disabled"
+                disabled
+            >
+                Add delivery details to checkout
             </button>
-
-            <div class="form-group">
-                <label>Phone Number *</label>
-                <input type="tel" id="phone" placeholder="24 123 4567">
-            </div>
-
-            <div class="form-group">
-                <label>Nearby Landmark *</label>
-                <input type="text" id="landmark" placeholder="Melcom, KFC, Shell...">
-            </div>
-
-            <div id="address-display" class="delivery-address-display"></div>
-        </div>
-
-        <!-- CHECKOUT -->
-        <button
-            id="checkoutBtn"
-            class="checkout-btn disabled"
-            data-url="{% url 'payment' %}"
-            disabled
-        >
-            Add delivery details to checkout
-        </button>
+    </form>
 
             <!-- DELIVERY TIMER SECTION -->
         <div class="delivery-tracker">
@@ -163,9 +169,6 @@
     </div>
 </div>
 
-<!-- HIDDEN FIELDS -->
-<input type="hidden" id="id_lat">
-<input type="hidden" id="id_lon">
 
 <script src="{% static 'scripts/cart.js' %}"></script>
 <script src="{% static 'scripts/location.js' %}"></script>

@@ -23,6 +23,7 @@ urlpatterns = [
     path('update-cart-location/', views.update_cart_location, name='update_cart_location'),
     path("driver/dashboard/", views.driver_dashboard, name="driver_dashboard"),
     path('cart/save-delivery-details/', views.save_delivery_details, name='save_delivery_details'),
+    path('checkout/', views.checkout_view, name='checkout'),
 
 
 ]

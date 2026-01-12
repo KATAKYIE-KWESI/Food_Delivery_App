@@ -376,34 +376,53 @@ def update_cart_location(request):
         print(f"Saved coords for {request.user.username}: {lat}, {lon}")
 
         return JsonResponse({'status': 'success'})
-
-
-
 def checkout_view(request):
-    first_item = CartItem.objects.filter(user=request.user).first()
+    if request.method == "POST":
+        # Get the first item in the user's cart
+        first_item = CartItem.objects.filter(user=request.user).first()
 
-    if first_item and first_item.lat and first_item.lon:
-        lat, lon = first_item.lat, first_item.lon
+        # Get data from form
+        lat = request.POST.get("id_lat")
+        lon = request.POST.get("id_lon")
+        phone = request.POST.get("phone")
+        landmark = request.POST.get("landmark")
 
-        # Send the real location pin
-        send_telegram_location(lat, lon)
+        # Save coordinates to CartItem if available
+        if first_item and lat and lon:
+            first_item.lat = float(lat)
+            first_item.lon = float(lon)
+            first_item.save()
 
-        # Send clickable Google Maps link as backup
-        maps_link = f"https://www.google.com/maps?q={lat},{lon}"
-        location_msg = f"📍 [Click to View Delivery Location]({maps_link})"
-    else:
-        location_msg = "⚠️ No GPS location shared (Manual Landmark only)."
+        # Prepare location message
+        if first_item and first_item.lat is not None and first_item.lon is not None:
+            # Send location pin
+            send_telegram_location(first_item.lat, first_item.lon)
 
-    # Compose full order message
-    message = (
-        f"🍔 *New Order!*\n"
-        f"👤 *Customer:* {request.user.username}\n"
-        f"{location_msg}"
-    )
+            # Send phone & landmark as a separate message
+            send_telegram_alert(f"📞 Phone: {phone}\n🏷️ Landmark: {landmark}")
 
-    # Send the message to Telegram
-    send_telegram_alert(message)
+            # Backup Google Maps link
+            maps_link = f"https://www.google.com/maps?q={first_item.lat},{first_item.lon}"
+            location_msg = f"📍 Click to view delivery location: {maps_link}\n📞 Phone: {phone}\n🏷️ Landmark: {landmark}"
+        else:
+            # No GPS location shared
+            location_msg = f"⚠️ No GPS location shared (Manual Landmark only).\n📞 Phone: {phone}\n🏷️ Landmark: {landmark}"
 
+        # Compose full order message
+        message = (
+            f"🍔 New Order!\n"
+            f"👤 Customer: {request.user.username}\n"
+            f"{location_msg}"
+        )
+
+        # Send the full order message to Telegram
+        send_telegram_alert(message)
+
+        # Redirect to payment page or next step
+        return redirect("payment")
+
+    # If not POST, redirect back to cart
+    return redirect("cart")
 
 
 #View for driver

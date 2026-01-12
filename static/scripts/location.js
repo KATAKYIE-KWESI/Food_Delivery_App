@@ -1,5 +1,6 @@
 const locBtn = document.getElementById("loc-btn");
 const checkoutBtn = document.getElementById("checkoutBtn");
+const checkoutForm = document.getElementById("checkoutForm");
 
 locBtn.addEventListener("click", () => {
     if (!navigator.geolocation) {
@@ -45,7 +46,10 @@ function checkReady() {
 document.getElementById("phone").addEventListener("input", checkReady);
 document.getElementById("landmark").addEventListener("input", checkReady);
 
-checkoutBtn.addEventListener("click", () => {
+checkoutBtn.addEventListener("click", (e) => {
+    e.preventDefault(); // prevent default button behavior
     if (checkoutBtn.disabled) return;
-    window.location.href = checkoutBtn.dataset.url;
+
+    // Submit the form instead of redirecting
+    checkoutForm.submit();
 });
