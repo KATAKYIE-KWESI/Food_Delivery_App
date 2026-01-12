@@ -37,7 +37,7 @@
         <div class="shopping-cart">
             <a href="{% url 'cart' %}">
                 <i class="fa-solid fa-basket-shopping"></i>
-                <span class="dot" id="cart-dot-count"></span>
+                <span class="dot" id="cart-dot-count">0</span>
             </a>
         </div>
 
@@ -783,17 +783,24 @@ async function updateCartBadge() {
         const res = await fetch('/cart/count/');
         const data = await res.json();
         const badge = document.getElementById('cart-dot-count');
+        const cartContainer = document.querySelector('.cart-container');
 
         if (data.cart_count > 0) {
-            badge.style.display = 'flex';
+            badge.style.display = 'flex'; // Vital for centering text
             badge.textContent = data.cart_count;
+            cartContainer.classList.add('has-items');
+
+            // Re-trigger animation
+            badge.classList.remove('badge-bump');
+            void badge.offsetWidth;
             badge.classList.add('badge-bump');
-            setTimeout(() => badge.classList.remove('badge-bump'), 300);
         } else {
             badge.style.display = 'none';
+            cartContainer.classList.remove('has-items');
         }
     } catch (err) { console.error('Badge error:', err); }
 }
+
 
 async function addToCart(name, price, image, quantity) {
     try {

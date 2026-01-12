@@ -1,3 +1,5 @@
+import random
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -64,23 +66,48 @@ class Driver(models.Model):
 
 
 class Delivery(models.Model):
-    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True)
-    customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deliveries', null=True)
+    driver = models.ForeignKey(
+        Driver,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    customer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='deliveries',
+        null=True
+    )
+
     customer_name = models.CharField(max_length=100)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     lat = models.FloatField()
     lng = models.FloatField()
 
-    phone_number = models.CharField(max_length=15, null=True, blank=True)   # NEW
-    landmark = models.CharField(max_length=255, null=True, blank=True)      # NEW
-
+    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    landmark = models.CharField(max_length=255, null=True, blank=True)
+    token = models.CharField(max_length=6, blank=True, null=True)  # The 6-digit code
     status = models.CharField(
         max_length=20,
-        choices=[("new", "New"), ("picked", "Picked"), ("delivered", "Delivered")],
+        choices=[
+            ("new", "New"),
+            ("picked", "Picked"),
+            ("delivered", "Delivered")
+        ],
         default="new"
     )
+
+    notified = models.BooleanField(default=False)  # 🔒 PREVENTS DUPLICATES
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.customer_name} - {self.status}"
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            # Generates a random 6-digit number like '482931'
+            self.token = str(random.randint(100000, 999999))
+        super().save(*args, **kwargs)

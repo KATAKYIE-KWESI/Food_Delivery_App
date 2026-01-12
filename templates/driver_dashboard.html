@@ -10,14 +10,13 @@
 </head>
 <body>
 
-    <!-- Header -->
     <header class="dashboard-header">
         <div class="header-content">
             <div class="logo-section">
                 <i class="fa-solid fa-motorcycle"></i>
                 <div>
-                    <h1>JollyFoods Driver</h1>
-                    <p class="subtitle">Delivery Dashboard</p>
+                    <h1>JollyFoods</h1>
+                    <p class="subtitle">Driver Dashboard</p>
                 </div>
             </div>
             <div class="driver-profile">
@@ -25,304 +24,251 @@
                     <span class="driver-name">{{ driver.name }}</span>
                     <span class="driver-status online">Online</span>
                 </div>
-                <div class="driver-avatar">
-                    <i class="fa-solid fa-user"></i>
-                </div>
+                <div class="driver-avatar"><i class="fa-solid fa-user"></i></div>
             </div>
         </div>
     </header>
 
-    <!-- Stats Section -->
     <section class="stats-section">
         <div class="stats-container">
             <div class="stat-card">
-                <div class="stat-icon deliveries">
-                    <i class="fa-solid fa-box"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ deliveries|length }}</h3>
-                    <p>Pending Deliveries</p>
-                </div>
+                <div class="stat-icon deliveries"><i class="fa-solid fa-box"></i></div>
+                <div class="stat-content"><h3>{{ deliveries|length }}</h3><p>New Orders</p></div>
             </div>
-
             <div class="stat-card">
-                <div class="stat-icon earnings">
-                    <i class="fa-solid fa-dollar-sign"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>GHS {{ total_earnings|default:"0.00" }}</h3>
-                    <p>Today's Earnings</p>
-                </div>
+                <div class="stat-icon earnings"><i class="fa-solid fa-dollar-sign"></i></div>
+                <div class="stat-content"><h3>GHS {{ total_earnings|default:"0.00" }}</h3><p>Today</p></div>
             </div>
-
             <div class="stat-card">
-                <div class="stat-icon completed">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ completed_today|default:"0" }}</h3>
-                    <p>Completed Today</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon rating">
-                    <i class="fa-solid fa-star"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ driver_rating|default:"5.0" }}</h3>
-                    <p>Your Rating</p>
-                </div>
+                <div class="stat-icon rating"><i class="fa-solid fa-star"></i></div>
+                <div class="stat-content"><h3>{{ driver_rating|default:"5.0" }}</h3><p>Rating</p></div>
             </div>
         </div>
     </section>
 
-    <!-- Main Content -->
     <main class="main-content">
-
-        <!-- Quick Actions -->
         <aside class="quick-actions">
-            <h3>Quick Actions</h3>
+            <h3>Menu</h3>
+            <button class="action-btn"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
+            <button class="action-btn"><i class="fa-solid fa-chart-line"></i> Reports</button>
+            <button class="action-btn" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> Refresh Feed</button>
 
-            <button class="action-btn toggle-status">
-                <i class="fa-solid fa-power-off"></i>
-                <span>Go Offline</span>
-            </button>
-
-            <button class="action-btn view-history">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-                <span>Delivery History</span>
-            </button>
-
-            <button class="action-btn earnings-report">
-                <i class="fa-solid fa-chart-line"></i>
-                <span>Earnings Report</span>
-            </button>
-
-            <button class="action-btn support">
-                <i class="fa-solid fa-headset"></i>
-                <span>Contact Support</span>
-            </button>
-
-            <!-- Availability Toggle -->
-            <div class="availability-card">
-                <div class="availability-header">
-                    <i class="fa-solid fa-circle-dot"></i>
-                    <span>Availability Status</span>
-                </div>
-                <div class="availability-toggle">
-                    <label class="switch">
-                        <input type="checkbox" id="availabilityToggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                    <span class="status-text">Available for Orders</span>
-                </div>
+            <div class="availability-card" style="margin-top:20px;">
+                <label class="switch">
+                    <input type="checkbox" id="availabilityToggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <span class="status-text" style="font-size:13px; font-weight:600;">Available</span>
             </div>
         </aside>
 
-        <!-- Deliveries Section -->
-        <section class="deliveries-section">
-            <div class="section-header">
-                <h2>
-                    <i class="fa-solid fa-truck-fast"></i>
-                    New Deliveries
-                </h2>
-                <div class="filters">
-                    <button class="filter-btn active">All</button>
-                    <button class="filter-btn">Nearby</button>
-                    <button class="filter-btn">Urgent</button>
+        <div class="feed-area">
+            <section class="my-deliveries-section" id="activeJobs">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-route"></i> My Active Jobs</h2>
                 </div>
-            </div>
+                <div class="deliveries-container" id="myDeliveriesContainer">
+                    {% for d in my_jobs %}
+                    <div class="delivery-card active-job" data-id="{{ d.id }}">
+                        <div class="delivery-header">
+                            <span class="order-number">#{{ d.order_id }}</span>
+                            <div class="priority-badge normal">In Transit</div>
+                        </div>
+                        <div class="delivery-body">
+                            <h4>{{ d.customer_name }}</h4>
+                            <p><i class="fa-solid fa-location-dot"></i> {{ d.landmark }}</p>
+                        </div>
+                        <div class="delivery-actions" style="grid-template-columns: 1fr 1fr;">
+                             <a href="https://www.google.com/maps/search/?api=1&query={{ d.lat }},{{ d.lon }}" target="_blank" class="action-btn-primary">
+                                <i class="fa-solid fa-map"></i> View Map
+                            </a>
+                            <button class="action-btn-success" onclick="openTokenModal('{{ d.id }}')">
+                                <i class="fa-solid fa-key"></i> Complete
+                            </button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="empty-msg" style="padding: 20px; color: #888;">No active jobs.</p>
+                    {% endfor %}
+                </div>
+            </section>
 
-            <div class="deliveries-container">
-                {% for d in deliveries %}
-                <div class="delivery-card">
-                    <div class="delivery-header">
-                        <div class="order-info">
+            <section class="deliveries-section" style="margin-top:30px;">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-truck-fast"></i> New Deliveries</h2>
+                </div>
+
+                <div class="deliveries-container">
+                    {% for d in deliveries %}
+                    <div class="delivery-card" data-id="{{ d.id }}">
+                        <div class="delivery-header">
                             <span class="order-number">#{{ d.order_id|default:forloop.counter }}</span>
-                            <span class="order-time">
-                                <i class="fa-solid fa-clock"></i>
-                                {{ d.order_time|default:"Just now" }}
-                            </span>
-                        </div>
-                        <div class="priority-badge {{ d.priority|default:'normal' }}">
-                            {{ d.priority|default:"Normal" }}
-                        </div>
-                    </div>
-
-                    <div class="delivery-body">
-                        <div class="customer-section">
-                            <div class="customer-avatar">
-                                <i class="fa-solid fa-user"></i>
-                            </div>
-                            <div class="customer-details">
-                                <h4>{{ d.customer_name }}</h4>
-
-                                <!-- Clickable phone -->
-                                {% if d.phone_number %}
-                                <p class="customer-phone">
-                                    <i class="fa-solid fa-phone"></i>
-                                    <a href="tel:{{ d.phone_number }}">{{ d.phone_number }}</a>
-                                </p>
-                                {% else %}
-                                <p class="customer-phone">
-                                    <i class="fa-solid fa-phone"></i> Not provided
-                                </p>
-                                {% endif %}
-
-                                <!-- Clickable Google Maps link -->
-                                {% if d.lat and d.lng %}
-                                <p class="customer-address">
-                                    <i class="fa-solid fa-location-dot"></i>
-                                    <a href="https://www.google.com/maps/search/?api=1&query={{ d.lat }},{{ d.lng }}" target="_blank">
-                                        {{ d.landmark|default:"View Location" }}
-                                    </a>
-                                </p>
-                                {% else %}
-                                <p class="customer-address">
-                                    <i class="fa-solid fa-location-dot"></i> Address not provided
-                                </p>
-                                {% endif %}
-                            </div>
-
-
-                        <div class="order-details">
-                            <h5>Order Items</h5>
-                            <div class="order-items">
-                                {% if d.items %}
-                                    {% for item in d.items %}
-                                    <div class="order-item">
-                                        <span class="item-qty">{{ item.quantity }}x</span>
-                                        <span class="item-name">{{ item.name }}</span>
-                                    </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <div class="order-item">
-                                        <span class="item-qty">1x</span>
-                                        <span class="item-name">Food Order</span>
-                                    </div>
-                                {% endif %}
+                            <div class="priority-badge {{ d.priority|default:'normal' }}">
+                                {{ d.priority|default:"Normal" }}
                             </div>
                         </div>
+                        <div class="delivery-body">
+                            <h4>{{ d.customer_name }}</h4>
+                            <p><i class="fa-solid fa-location-dot"></i> {{ d.landmark|default:"Location provided" }}</p>
 
-                        <div class="delivery-info">
-                            <div class="info-item">
-                                <i class="fa-solid fa-money-bill-wave"></i>
-                                <div>
-                                    <span class="label">Payment</span>
-                                    <span class="value">GHS {{ d.amount|default:"0.00" }}</span>
-                                </div>
+                            <div class="delivery-info">
+                                <div class="info-item"><span class="label">Payment</span><span class="value">GHS {{ d.amount }}</span></div>
+                                <div class="info-item"><span class="label">Dist</span><span class="value">{{ d.distance }}km</span></div>
+                                <div class="info-item"><span class="label">Earn</span><span class="value" style="color:var(--success)">GHS {{ d.driver_earning }}</span></div>
                             </div>
-                            <div class="info-item">
-                                <i class="fa-solid fa-route"></i>
-                                <div>
-                                    <span class="label">Distance</span>
-                                    <span class="value">{{ d.distance|default:"2.5" }} km</span>
-                                </div>
-                            </div>
-                            <div class="info-item">
-                                <i class="fa-solid fa-coins"></i>
-                                <div>
-                                    <span class="label">Your Earning</span>
-                                    <span class="value earning">GHS {{ d.driver_earning|default:"5.00" }}</span>
-                                </div>
-                            </div>
+                        </div>
+                        <div class="delivery-actions">
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ d.lat }},{{ d.lon }}" target="_blank" class="action-btn-primary"><i class="fa-solid fa-map"></i></a>
+                            <button class="action-btn-success" onclick="handleConfirmation('{{ d.id }}', 'accept')">Accept</button>
+                            <button class="action-btn-danger" onclick="handleConfirmation('{{ d.id }}', 'decline')"><i class="fa-solid fa-times"></i></button>
                         </div>
                     </div>
-
-                    <div class="delivery-actions">
-                        <a href="https://maps.google.com/?q={{ d.lat }},{{ d.lng }}"
-                           target="_blank"
-                           class="action-btn-primary">
-                            <i class="fa-solid fa-location-arrow"></i>
-                            Navigate
-                        </a>
-                        <button class="action-btn-success" onclick="acceptDelivery('{{ d.id }}')">
-                            <i class="fa-solid fa-check"></i>
-                            Accept
-                        </button>
-                        <button class="action-btn-danger" onclick="declineDelivery('{{ d.id }}')">
-                            <i class="fa-solid fa-times"></i>
-                            Decline
-                        </button>
-                    </div>
+                    {% endfor %}
                 </div>
-                {% empty %}
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fa-solid fa-box-open"></i>
-                    </div>
-                    <h3>No New Deliveries</h3>
-                    <p>You're all caught up! New orders will appear here.</p>
-                    <button class="refresh-btn" onclick="location.reload()">
-                        <i class="fa-solid fa-rotate"></i>
-                        Refresh
-                    </button>
-                </div>
-                {% endfor %}
-            </div>
-        </section>
+            </section>
+        </div>
     </main>
 
-    <!-- Bottom Navigation (Mobile) -->
-    <nav class="bottom-nav">
-        <a href="#" class="nav-item active">
-            <i class="fa-solid fa-home"></i>
-            <span>Home</span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <span>History</span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fa-solid fa-wallet"></i>
-            <span>Earnings</span>
-        </a>
-        <a href="#" class="nav-item">
-            <i class="fa-solid fa-user"></i>
-            <span>Profile</span>
-        </a>
-    </nav>
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-content">
+            <div id="modalIcon" style="font-size: 40px; margin-bottom: 10px;"></div>
+            <h3 id="modalTitle">Confirm</h3>
+            <p id="modalMessage" style="color: #666; margin: 10px 0; font-size: 14px;"></p>
+            <div class="modal-btns">
+                <button class="modal-btn" style="background:#eee; flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;" onclick="closeModals()">Cancel</button>
+                <button class="modal-btn" id="modalConfirmBtn" style="color:white; flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;"></button>
+            </div>
+        </div>
+    </div>
 
-    <script>
-        // Accept delivery
-        function acceptDelivery(deliveryId) {
-            if (confirm('Accept this delivery?')) {
-                // Add your AJAX call here
-                alert('Delivery accepted! Navigate to customer location.');
-            }
+    <div class="modal-overlay" id="tokenModal">
+        <div class="modal-content">
+            <div style="font-size: 40px; color: var(--primary); margin-bottom: 10px;">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3>Verify Delivery</h3>
+            <p style="color: #666; font-size: 13px;">Enter the 6-digit code from the customer.</p>
+            <input type="text" id="tokenInput" class="token-input" maxlength="6" placeholder="000000" style="text-align:center; font-size:24px; padding:10px; width:80%; margin:15px 0; letter-spacing:5px;">
+            <div class="modal-btns">
+                <button class="modal-btn" style="background:#eee; flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;" onclick="closeModals()">Back</button>
+                <button class="modal-btn" id="verifyTokenBtn" style="background:var(--success); color:white; flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;">Verify</button>
+            </div>
+        </div>
+    </div>
+
+   <script>
+    const csrftoken = "{{ csrf_token }}";
+    let currentId = null;
+    let currentAction = null;
+
+    function closeModals() {
+        document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+    }
+
+    // 1. Handle Acceptance of New Jobs
+    function handleConfirmation(id, action) {
+        currentId = id;
+        currentAction = action;
+        const modal = document.getElementById('confirmModal');
+        const icon = document.getElementById('modalIcon');
+        const title = document.getElementById('modalTitle');
+        const btn = document.getElementById('modalConfirmBtn');
+
+        if(action === 'accept') {
+            icon.innerHTML = '<i class="fa-solid fa-circle-check" style="color:var(--success)"></i>';
+            title.innerText = "Accept Delivery?";
+            btn.innerText = "Accept";
+            btn.style.background = "var(--success)";
+        } else {
+            icon.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:var(--danger)"></i>';
+            title.innerText = "Hide Order?";
+            btn.innerText = "Hide";
+            btn.style.background = "var(--danger)";
         }
+        modal.style.display = 'flex';
+    }
 
-        // Decline delivery
-        function declineDelivery(deliveryId) {
-            if (confirm('Decline this delivery?')) {
-                // Add your AJAX call here
-                alert('Delivery declined.');
-            }
-        }
+    document.getElementById('modalConfirmBtn').onclick = function() {
+    const card = document.querySelector(`.delivery-card[data-id="${currentId}"]`);
 
-        // Availability toggle
-        document.getElementById('availabilityToggle').addEventListener('change', function() {
-            const statusText = document.querySelector('.status-text');
-            const driverStatus = document.querySelector('.driver-status');
+    if(currentAction === 'accept') {
+        fetch(`/accept-delivery/${currentId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // Remove from New Deliveries
+                card.remove();
 
-            if (this.checked) {
-                statusText.textContent = 'Available for Orders';
-                driverStatus.textContent = 'Online';
-                driverStatus.className = 'driver-status online';
+                // Update actions for Active Jobs
+                const actions = `
+                    <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lon}" target="_blank" class="action-btn-primary">
+                        <i class="fa-solid fa-map"></i> View Map
+                    </a>
+                    <button class="action-btn-success" onclick="openTokenModal('${currentId}')">
+                        <i class="fa-solid fa-key"></i> Complete
+                    </button>
+                `;
+                card.querySelector('.delivery-actions').innerHTML = actions;
+
+                // Prepend to Active Jobs
+                const activeContainer = document.getElementById('myDeliveriesContainer');
+                activeContainer.prepend(card);
+
+                // Remove empty message if exists
+                const emptyMsg = document.querySelector('.deliveries-section .empty-msg');
+                if(emptyMsg) emptyMsg.remove();
+
             } else {
-                statusText.textContent = 'Not Available';
-                driverStatus.textContent = 'Offline';
-                driverStatus.className = 'driver-status offline';
+                alert(data.error || "Could not accept delivery.");
             }
         });
+    } else {
+        // Decline: remove card
+        card.remove();
+    }
 
-        // Auto-refresh every 30 seconds
-        setInterval(() => {
-            console.log('Checking for new deliveries...');
-            // Add your auto-refresh logic here
-        }, 30000);
-    </script>
+    closeModals();
+};
 
+
+    // 2. Handle Token Verification
+    function openTokenModal(id) {
+        currentId = id;
+        document.getElementById('tokenInput').value = '';
+        document.getElementById('tokenModal').style.display = 'flex';
+    }
+
+    document.getElementById('verifyTokenBtn').onclick = function() {
+        const token = document.getElementById('tokenInput').value;
+        if(token.length === 6) {
+            // Updated to use the verify-token URL we created in views.py
+            fetch(`/verify-token/${currentId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 'token': token })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    alert("Order Verified & Completed!");
+                    document.querySelector(`.delivery-card[data-id="${currentId}"]`).remove();
+                    closeModals();
+                    // Optionally refresh to update your earnings stat
+                    location.reload();
+                } else {
+                    alert("Invalid Code: " + data.error);
+                }
+            });
+        } else {
+            alert("Please enter a 6-digit code.");
+        }
+    };
+</script>
 </body>
 </html>

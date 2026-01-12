@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-
+from .views import accept_delivery, decline_delivery
 
 urlpatterns = [
     path('', views.homepage, name='homepage'),
@@ -24,6 +24,10 @@ urlpatterns = [
     path("driver/dashboard/", views.driver_dashboard, name="driver_dashboard"),
     path('cart/save-delivery-details/', views.save_delivery_details, name='save_delivery_details'),
     path('checkout/', views.checkout_view, name='checkout'),
+    path("driver/accept-delivery/<int:delivery_id>/", accept_delivery),
+    path("driver/decline-delivery/<int:delivery_id>/", decline_delivery),
+    path('verify-token/<int:delivery_id>/', views.verify_delivery_token, name='verify_token'),
+
 
 
 ]

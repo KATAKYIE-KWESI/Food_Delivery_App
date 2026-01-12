@@ -965,3 +965,55 @@ body {
         font-size: 1rem;
     }
 }
+
+
+/* Verification Code Box Styling */
+.delivery-tracker #tokenDisplay {
+    background: #fff9e6 !important; /* Soft yellow background */
+    border: 2px dashed #d4a017 !important; /* Gold dashed border */
+    padding: 20px !important;
+    border-radius: 12px !important;
+    text-align: center;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    animation: pulse 2s infinite; /* Gentle pulse to draw attention */
+}
+
+.delivery-tracker #tokenDisplay p:first-child {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #856404;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.delivery-tracker #tokenDisplay h2 {
+    font-size: 38px !important; /* Large, easy to read */
+    font-family: 'Courier New', Courier, monospace; /* Monospace looks like a real code */
+    letter-spacing: 8px !important;
+    color: #222;
+    margin: 10px 0 !important;
+    font-weight: 800;
+}
+
+.delivery-tracker #tokenDisplay p:last-child {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Animation to make it noticeable */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+/* Ensure tracker is visible when paid */
+.delivery-tracker {
+    transition: all 0.5s ease;
+    padding: 20px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}

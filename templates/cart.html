@@ -12,9 +12,7 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
 <div class="navbar">
-    <!-- Home Button - Only visible on mobile -->
     <a href="{% url 'homepage' %}" class="home-button">
         <i class="fa-solid fa-house"></i>
     </a>
@@ -26,131 +24,78 @@
     </ul>
 </div>
 
-
-<!-- CART -->
 <div class="cart-container">
 
-{% if cart_items %}
+{% if paid or cart_items %}
 <div class="cart-content">
 
-    <!-- CART ITEMS -->
+    {% if cart_items %}
     <div class="cart-items-section">
         <h2>Your Items</h2>
-
         {% for item in cart_items %}
-
         <div class="cart-item" data-item-id="{{ item.id }}">
             <img src="{% static 'assets/' %}{{ item.food_image }}" alt="{{ item.food_name }}">
-
             <div class="item-info">
                 <h4>{{ item.food_name }}</h4>
                 <p class="item-price">${{ item.food_price }}</p>
             </div>
-
-            <!-- QUANTITY CONTROLS -->
             <div class="item-quantity">
                 <button class="qty-btn minus-btn" data-item-id="{{ item.id }}">−</button>
                 <span class="quantity">{{ item.quantity }}</span>
                 <button class="qty-btn plus-btn" data-item-id="{{ item.id }}">+</button>
             </div>
-
-            <!-- ITEM TOTAL -->
-            <div class="item-total">
-                <p>${{ item.get_total_price }}</p>
+            <div class="item-total"><p>${{ item.get_total_price }}</p></div>
+            <button class="remove-btn" data-item-id="{{ item.id }}"><i class="fa-solid fa-trash"></i></button>
         </div>
-
-        <!-- REMOVE BUTTON -->
-        <button class="remove-btn" data-item-id="{{ item.id }}">
-            <i class="fa-solid fa-trash"></i>
-        </button>
-    </div>
-
         {% endfor %}
     </div>
 
-
-    <!-- SUMMARY -->
     <div class="order-summary-container">
-        <div class="summary-row">
-            <span>Subtotal</span>
-            <span id="subtotal">GHS {{ cart_total }}</span>
-        </div>
-
-        <div class="summary-row">
-            <span>Delivery</span>
-            <span>GHS 5.00</span>
-        </div>
-
-        <div class="summary-row total">
-            <strong>Total</strong>
-            <strong id="total">GHS {{ grand_total|floatformat:2 }}</strong>
-        </div>
+        <div class="summary-row"><span>Subtotal</span><span id="subtotal">GHS {{ cart_total }}</span></div>
+        <div class="summary-row"><span>Delivery</span><span>GHS 5.00</span></div>
+        <div class="summary-row total"><strong>Total</strong><strong id="total">GHS {{ grand_total|floatformat:2 }}</strong></div>
     </div>
 
-    <form id="checkoutForm" method="POST" action="{% url 'checkout' %}">
-            {% csrf_token %}
+    <div class="delivery-location-section">
+        <div class="section-header"><div class="delivery-icon">🚚</div><h3>Delivery Details</h3></div>
+        <button id="loc-btn" class="quick-location-btn">📍 Share My Location</button>
+        <div class="form-group"><label>Phone Number *</label><input type="tel" id="phone" placeholder="24 123 4567"></div>
+        <div class="form-group"><label>Nearby Landmark *</label><input type="text" id="landmark" placeholder="Melcom, KFC, Shell..."></div>
+    </div>
 
-            <!-- DELIVERY LOCATION SECTION -->
-            <div class="delivery-location-section">
-                <div class="section-header">
-                    <div class="delivery-icon">🚚</div>
-                    <h3>Delivery Details <span class="required-badge">REQUIRED</span></h3>
-                </div>
+    <button id="checkoutBtn" class="checkout-btn disabled" data-url="{% url 'payment' %}" disabled>
+        Add delivery details to checkout
+    </button>
+    {% endif %}
 
-                <button id="loc-btn" class="quick-location-btn">📍 Share My Location</button>
+    <div class="delivery-tracker" {% if not paid %}style="display:none;"{% endif %}>
+        <h3>Delivery Tracker</h3>
 
-                <div class="form-group">
-                    <label>Phone Number *</label>
-                    <input type="tel" id="phone" name="phone" placeholder="24 123 4567">
-                </div>
-
-                <div class="form-group">
-                    <label>Nearby Landmark *</label>
-                    <input type="text" id="landmark" name="landmark" placeholder="Melcom, KFC, Shell...">
-                </div>
-
-                <!-- Hidden fields for GPS -->
-                <input type="hidden" id="id_lat" name="id_lat">
-                <input type="hidden" id="id_lon" name="id_lon">
-
-                <div id="address-display" class="delivery-address-display"></div>
-            </div>
-
-            <!-- CHECKOUT BUTTON -->
-            <button
-                id="checkoutBtn"
-                class="checkout-btn disabled"
-                disabled
-            >
-                Add delivery details to checkout
-            </button>
-    </form>
-
-            <!-- DELIVERY TIMER SECTION -->
-        <div class="delivery-tracker">
-            <h3>Delivery Tracker</h3>
-            <div class="tracker-bar">
-                <div id="progressBar" class="progress"></div>
-                <div id="carMarker" class="car-marker">🚗</div>
-            </div>
-            <div class="tracker-info">
-                <span id="timerText">00:00</span>
-                <span class="tracker-status">Driver is on the way...</span>
-            </div>
-            <div id="thankYouMessage" class="thank-you-message" style="display:none;">
-                Thank you for ordering!
-            </div>
+        {% if paid and delivery_token %}
+        <div id="tokenDisplay" style="background: #fff3cd; border: 2px dashed #856404; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 12px; font-weight: bold; color: #856404; margin: 0;">VERIFICATION CODE</p>
+            <h2 style="font-size: 32px; letter-spacing: 5px; margin: 10px 0; color: #333;">{{ delivery_token }}</h2>
+            <p style="font-size: 11px; color: #666; margin: 0;">Show this to the driver when your food arrives.</p>
         </div>
+        {% endif %}
 
+        <div class="tracker-bar">
+            <div id="progressBar" class="progress"></div>
+            <div id="carMarker" class="car-marker">🚗</div>
+        </div>
+        <div class="tracker-info">
+            <span id="timerText">00:00</span>
+            <span class="tracker-status">Driver is on the way...</span>
+        </div>
     </div>
 
 </div>
+
 {% else %}
 <div class="empty-cart-card">
     <div class="empty-cart-body">
         <i class="fa-solid fa-utensils empty-icon"></i>
         <h2>Your cart is empty!</h2>
-        <p>Hungry? Add some delicious meals from our menu and we'll have them delivered in no time.</p>
         <a href="{% url 'homepage' %}" class="browse-menu-btn">Browse Menu</a>
     </div>
 </div>
@@ -158,7 +103,6 @@
 
 </div>
 
-<!-- Confirm Delete Modal -->
 <div id="confirmModal" class="confirm-modal" style="display:none;">
     <div class="confirm-modal-content">
         <p id="confirmMessage">Are you sure you want to remove this item?</p>
@@ -169,24 +113,37 @@
     </div>
 </div>
 
+<input type="hidden" id="id_lat">
+<input type="hidden" id="id_lon">
 
 <script src="{% static 'scripts/cart.js' %}"></script>
 <script src="{% static 'scripts/location.js' %}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        {% if paid %}
-            // Start 15-minute delivery timer
-            startDeliveryTimer(1);
+        // We use the variables passed from your Python view
+        const isPaid = "{{ paid }}" === "True";
+
+        if (isPaid) {
+            // Start 2-minute delivery timer
+            if (typeof startDeliveryTimer === "function") {
+                startDeliveryTimer(2);
+            }
 
             // Disable cart buttons while delivery is in progress
             document.querySelectorAll('.plus-btn, .minus-btn, .remove-btn').forEach(btn => {
                 btn.disabled = true;
+                btn.style.opacity = "0.5";
+                btn.style.cursor = "not-allowed";
             });
-        {% endif %}
+
+            // Hide the location and checkout buttons since order is already placed
+            const checkoutBtn = document.getElementById('checkoutBtn');
+            const locationSection = document.querySelector('.delivery-location-section');
+            if(checkoutBtn) checkoutBtn.style.display = 'none';
+            if(locationSection) locationSection.style.display = 'none';
+        }
     });
 </script>
-
-
 
 </body>
 </html>

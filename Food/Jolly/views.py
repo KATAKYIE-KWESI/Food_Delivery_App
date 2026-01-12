@@ -6,9 +6,10 @@ from operator import itemgetter
 from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from .models import CartItem, Profile, SecurityLog, Driver
 from .utils.telegram import send_telegram_alert, send_telegram_location
@@ -116,6 +117,7 @@ def cart(request):
         'cart_total': totals['subtotal'],
         'grand_total': totals['grand_total'], # Use this in your HTML
         'paid': request.session.pop('paid', False),
+        'delivery_token': request.session.get('delivery_token'),  # Show 6-digit code
     }
     return render(request, 'cart.html', context)
 
@@ -376,53 +378,34 @@ def update_cart_location(request):
         print(f"Saved coords for {request.user.username}: {lat}, {lon}")
 
         return JsonResponse({'status': 'success'})
+
 def checkout_view(request):
     if request.method == "POST":
-        # Get the first item in the user's cart
         first_item = CartItem.objects.filter(user=request.user).first()
 
-        # Get data from form
         lat = request.POST.get("id_lat")
         lon = request.POST.get("id_lon")
         phone = request.POST.get("phone")
         landmark = request.POST.get("landmark")
 
-        # Save coordinates to CartItem if available
-        if first_item and lat and lon:
-            first_item.lat = float(lat)
-            first_item.lon = float(lon)
+        # Save location + landmark to cart
+        if first_item:
+            if lat and lon:
+                first_item.lat = float(lat)
+                first_item.lon = float(lon)
+            first_item.address_text = landmark
             first_item.save()
 
-        # Prepare location message
-        if first_item and first_item.lat is not None and first_item.lon is not None:
-            # Send location pin
-            send_telegram_location(first_item.lat, first_item.lon)
+        # Save phone to profile
+        if request.user.is_authenticated:
+            profile, _ = Profile.objects.get_or_create(user=request.user)
+            profile.phone_number = phone
+            profile.save()
 
-            # Send phone & landmark as a separate message
-            send_telegram_alert(f"📞 Phone: {phone}\n🏷️ Landmark: {landmark}")
-
-            # Backup Google Maps link
-            maps_link = f"https://www.google.com/maps?q={first_item.lat},{first_item.lon}"
-            location_msg = f"📍 Click to view delivery location: {maps_link}\n📞 Phone: {phone}\n🏷️ Landmark: {landmark}"
-        else:
-            # No GPS location shared
-            location_msg = f"⚠️ No GPS location shared (Manual Landmark only).\n📞 Phone: {phone}\n🏷️ Landmark: {landmark}"
-
-        # Compose full order message
-        message = (
-            f"🍔 New Order!\n"
-            f"👤 Customer: {request.user.username}\n"
-            f"{location_msg}"
-        )
-
-        # Send the full order message to Telegram
-        send_telegram_alert(message)
-
-        # Redirect to payment page or next step
         return redirect("payment")
 
-    # If not POST, redirect back to cart
     return redirect("cart")
+
 
 
 #View for driver
@@ -469,15 +452,7 @@ from django.http import JsonResponse
 from .models import CartItem, Profile, Delivery
 
 
-# ... keep your other imports (calculate_cart_totals, telegram utils, etc.)
-
 def payment(request):
-    """
-    Handles checkout/payment and creates Delivery with all fields populated.
-    Ensures phone and landmark are correctly pulled from the database
-    after the user types them in the cart.
-    """
-    # 1. Get cart items (Authenticated or Session)
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
     else:
@@ -490,62 +465,60 @@ def payment(request):
     totals = calculate_cart_totals(cart_items)
 
     if request.method == "POST":
-        # This session flag triggers the car animation/timer in the cart
         request.session['paid'] = True
 
-        if cart_items.exists():
-            # Grab the first item to get location and landmark data
-            first_item = cart_items.first()
+        if not cart_items.exists():
+            return JsonResponse({'success': False, 'error': 'Cart is empty'})
 
-            # --- UNIFICATION LOGIC START ---
+        first_item = cart_items.first()
 
-            # A. Get Phone Number
-            # We look at the Profile (since save_delivery_details saves it there)
-            phone = "No Phone"
-            if request.user.is_authenticated:
-                profile, _ = Profile.objects.get_or_create(user=request.user)
-                phone = profile.phone_number if profile.phone_number else "Not provided"
+        # Get phone
+        phone = "Not provided"
+        if request.user.is_authenticated:
+            profile, _ = Profile.objects.get_or_create(user=request.user)
+            phone = profile.phone_number or "Not provided"
 
-            # B. Get Landmark
-            # We look at 'address_text' in the CartItem model
-            landmark = first_item.address_text if first_item.address_text else "No landmark provided"
+        # Get landmark & location
+        landmark = first_item.address_text or "No landmark provided"
+        lat = float(first_item.lat) if first_item.lat else 0.0
+        lng = float(first_item.lon) if first_item.lon else 0.0
 
-            # C. Get Coordinates
-            lat = float(first_item.lat) if first_item.lat else 0.0
-            lng = float(first_item.lon) if first_item.lon else 0.0
+        # Create delivery (ONLY ONCE)
+        delivery = Delivery.objects.create(
+            customer=request.user if request.user.is_authenticated else None,
+            customer_name=request.user.username if request.user.is_authenticated else "Guest",
+            total_amount=totals['grand_total'],
+            lat=lat,
+            lng=lng,
+            phone_number=phone,
+            landmark=landmark,
+            status="new"
+        )
 
-            # --- UNIFICATION LOGIC END ---
+        request.session['paid'] = True
+        request.session['delivery_token'] = delivery.token
 
-            # Create the Delivery record for the Driver Dashboard
-            new_delivery = Delivery.objects.create(
-                customer=request.user if request.user.is_authenticated else None,
-                customer_name=request.user.username if request.user.is_authenticated else "Guest",
-                total_amount=totals['grand_total'],
-                lat=lat,
-                lng=lng,
-                phone_number=phone,  # Saved to Delivery.phone_number
-                landmark=landmark,  # Saved to Delivery.landmark
-                status="new"
-            )
-
-            # Important: Clear the cart ONLY after we've used the data to create the delivery
-            cart_items.delete()
-
-            # Send Telegram alerts
+        # 🔒 TELEGRAM SEND — PROTECTED
+        if not delivery.notified:
             if lat != 0.0 and lng != 0.0:
                 send_telegram_location(lat, lng)
 
             send_telegram_alert(
-                f"🍔 *New Order!*\n"
-                f"👤 *Customer:* {new_delivery.customer_name}\n"
-                f"📞 *Phone:* {phone}\n"
-                f"📍 *Landmark:* {landmark}\n"
-                f"💰 *Total:* GHS {totals['grand_total']}"
+                f"🍔 New Order!\n"
+                f"👤 Customer: {delivery.customer_name}\n"
+                f"📞 Phone: {phone}\n"
+                f"📍 Landmark: {landmark}\n"
+                f"💰 Total: GHS {totals['grand_total']}"
             )
 
-            return JsonResponse({'success': True, 'message': 'Order sent to driver!'})
+            delivery.notified = True
+            delivery.save()
 
-    # Render the payment page (context for Paystack)
+        # Clear cart AFTER everything
+        cart_items.delete()
+
+        return JsonResponse({'success': True, 'message': 'Order placed successfully!'})
+
     context = {
         'cart_items': cart_items,
         'subtotal': totals['subtotal'],
@@ -554,15 +527,13 @@ def payment(request):
         'paystack_amount': int(totals['grand_total'] * 100),
         'paystack_public_key': settings.PAYSTACK_PUBLIC_KEY,
     }
+
     return render(request, 'payment.html', context)
 
 
 @login_required
 def create_delivery_from_cart(request):
-    """
-    Alternative delivery creation (if separate from payment flow).
-    Ensures phone, landmark, and lat/lng are properly set.
-    """
+
     user_cart = CartItem.objects.filter(user=request.user)
 
     if not user_cart.exists():
@@ -627,3 +598,58 @@ def save_delivery_details(request):
     return JsonResponse({'success': True})
 
 
+@login_required
+@require_POST
+def accept_delivery(request, delivery_id):
+    try:
+        # Check if the user is a driver
+        driver_profile = request.user.driver
+    except Driver.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Driver profile not found.'}, status=403)
+
+    # Get the delivery
+    delivery = get_object_or_404(Delivery, id=delivery_id)
+
+    # Check if it's still available
+    if delivery.status == "new" and delivery.driver is None:
+        delivery.driver = driver_profile
+        delivery.status = "picked"  # Changing status removes it from 'New' and puts it in 'Active'
+        delivery.save()
+
+        return JsonResponse({
+            'success': True,
+            'message': 'Order accepted!',
+            'lat': delivery.lat,
+            'lon': delivery.lon
+        })
+    else:
+        return JsonResponse({'success': False, 'error': 'Order already taken by another driver.'})
+
+# Decline delivery
+@csrf_exempt
+def decline_delivery(request, delivery_id):
+    if request.method == "POST":
+        delivery = get_object_or_404(Delivery, id=delivery_id)
+        delivery.driver = None  # unassign the driver
+        delivery.status = "new"
+        delivery.save()
+        return JsonResponse({"success": True, "delivery_id": delivery_id})
+    return JsonResponse({"success": False}, status=400)
+
+
+@login_required
+@require_POST
+def verify_delivery_token(request, delivery_id):
+    """View for the Driver to enter the customer's code"""
+    data = json.loads(request.body)
+    entered_token = data.get('token')
+
+    # Ensure this delivery is actually assigned to the driver calling this
+    delivery = get_object_or_404(Delivery, id=delivery_id, driver__user=request.user)
+
+    if str(entered_token) == str(delivery.token):
+        delivery.status = "delivered"
+        delivery.save()
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'success': False, 'error': 'Invalid Code'})
