@@ -410,20 +410,26 @@ def checkout_view(request):
 
 #View for driver
 @login_required
-def driver_dashboard(request):
-    try:
-        driver_profile = request.user.driver
-    except Driver.DoesNotExist:
-        driver_profile = None
 
+def driver_dashboard(request):
+    # Deliveries waiting for a driver
     available_deliveries = Delivery.objects.filter(status="new", driver=None)
-    my_current_jobs = Delivery.objects.filter(driver=driver_profile, status="picked") if driver_profile else []
+
+    # Jobs currently being handled by THIS driver
+    # Note: Using request.user directly to avoid 'Profile' or 'Driver' model issues
+    my_current_jobs = Delivery.objects.filter(driver__user=request.user, status="picked")
+
+    # CALCULATE EARNINGS:
+    # Count how many deliveries this user has finished
+    completed_count = Delivery.objects.filter(driver__user=request.user, status="delivered").count()
+    total_earnings = completed_count * 5.0  # GHS 5.00 per delivery
 
     return render(request, "driver_dashboard.html", {
         "deliveries": available_deliveries,
-        "my_jobs": my_current_jobs
+        "my_jobs": my_current_jobs,
+        "total_earnings": f"{total_earnings:.2f}",
+        "driver": {"name": request.user.username}
     })
-
 
 
 
@@ -631,17 +637,17 @@ def decline_delivery(request, delivery_id):
 
 @login_required
 @require_POST
+
 def verify_delivery_token(request, delivery_id):
     try:
         data = json.loads(request.body)
         token_entered = data.get('token')
 
-        # Get delivery specifically assigned to THIS driver
+        # Find the delivery assigned to this user
         delivery = get_object_or_404(Delivery, id=delivery_id, driver__user=request.user)
 
-        # FIX: Changed delivery_token to token
         if delivery.token == token_entered:
-            delivery.status = "delivered"  # Matches our earnings/history filter
+            delivery.status = "delivered" # This makes it count towards earnings
             delivery.save()
             return JsonResponse({'success': True})
 
