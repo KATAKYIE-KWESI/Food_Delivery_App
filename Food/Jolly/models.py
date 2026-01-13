@@ -89,6 +89,7 @@ class Delivery(models.Model):
     phone_number = models.CharField(max_length=15, null=True, blank=True)
     landmark = models.CharField(max_length=255, null=True, blank=True)
     token = models.CharField(max_length=6, blank=True, null=True)  # The 6-digit code
+    items_json = models.TextField(null=True, blank=True)   # Stores list of food items
     status = models.CharField(
         max_length=20,
         choices=[

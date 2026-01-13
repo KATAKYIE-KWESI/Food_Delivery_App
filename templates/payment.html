@@ -4,17 +4,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JollyFoods Checkout</title>
+    <title>Secure Checkout - JollyFoods</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'payment.css' %}">
 </head>
 <body>
 
-<!-- Home Button - Only visible on mobile -->
-    <a href="{% url 'homepage' %}" class="home-button">
-    <i class="fa-solid fa-house"></i>
-</a>
 <div class="checkout-container">
+    <div class="header-actions">
+        <a href="{% url 'homepage' %}" class="home-button">
+            <i class="fa-solid fa-arrow-left"></i>
+            <i class="fa-solid fa-house"></i>
+            <span>Back to Home</span>
+        </a>
+    </div>
+
     <div class="checkout-card">
         <div class="badge">
             <i class="fa-solid fa-shield-halved"></i> SECURE
@@ -23,7 +27,6 @@
         <div class="logo">JollyFoods<span>.</span></div>
         <p class="tagline">Delicious moments, delivered with love</p>
 
-        <!-- Order Items Preview -->
         <div class="order-items">
             <h3>
                 <i class="fa-solid fa-receipt"></i>
@@ -58,7 +61,6 @@
             </div>
         </div>
 
-        <!-- Payment Methods -->
         <div class="payment-methods">
             <div class="payment-method active">
                 <i class="fa-solid fa-credit-card"></i>
@@ -66,26 +68,14 @@
             </div>
             <div class="payment-method">
                 <i class="fa-solid fa-mobile-screen-button"></i>
-                <p>Mobile Money</p>
-            </div>
-            <div class="payment-method">
-                <i class="fa-solid fa-building-columns"></i>
-                <p>Bank</p>
+                <p>MoMo</p>
             </div>
         </div>
 
-        <!-- Pay Button -->
-        <button type="button" class="pay-btn" onclick="payWithPaystack()">
+        <button type="button" class="pay-btn" id="mainPayBtn" onclick="payWithPaystack()">
             <i class="fa-solid fa-lock"></i> Pay Securely Now
         </button>
 
-        <div class="loading">
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-            <div class="loading-dot"></div>
-        </div>
-
-        <!-- Security Badges -->
         <div class="security-badges">
             <div class="security-badge">
                 <i class="fa-solid fa-shield-halved"></i>
@@ -93,38 +83,20 @@
             </div>
             <div class="security-badge">
                 <i class="fa-solid fa-check-circle"></i>
-                <span>PCI Compliant</span>
+                <span>Verified</span>
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="footer-icons">
             <i class="fa-solid fa-lock"></i>
             Secured by <strong>Paystack</strong>
         </div>
-
-        <!-- Trust Indicators -->
-        <div class="trust-indicators">
-            <div class="trust-indicator">
-                <i class="fa-solid fa-clock"></i>
-                <span>Fast Delivery</span>
-            </div>
-            <div class="trust-indicator">
-                <i class="fa-solid fa-rotate-left"></i>
-                <span>Easy Returns</span>
-            </div>
-            <div class="trust-indicator">
-                <i class="fa-solid fa-headset"></i>
-                <span>24/7 Support</span>
-            </div>
-        </div>
     </div>
 </div>
 
-
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
-    // Payment method selection
+    // Payment method selection UI
     document.querySelectorAll('.payment-method').forEach(method => {
         method.addEventListener('click', function() {
             document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
@@ -132,7 +104,6 @@
         });
     });
 
-    // Get CSRF token
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -149,42 +120,31 @@
     }
     const csrftoken = getCookie('csrftoken');
 
-    // Paystack payment
     function payWithPaystack() {
         let handler = PaystackPop.setup({
             key: '{{ paystack_public_key }}',
-            amount: {{ paystack_amount }}, // in pesewas
             email: '{{ request.user.email|default:"customer@jollyfoods.com" }}',
+            amount: {{ paystack_amount }},
             currency: 'GHS',
             ref: 'JF_' + Math.floor((Math.random() * 1000000000) + 1),
             callback: function(response) {
-                // Payment succeeded ✅ inform backend
+                // IMPORTANT: Tells backend to clear cart and set 'paid' = True
                 fetch("{% url 'payment' %}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrftoken
                     },
-                    body: JSON.stringify({ paid: true })
+                    body: JSON.stringify({ reference: response.reference })
                 })
-                .then(res => {
-                    // Redirect to cart after backend sets session
-                    window.location.href = "{% url 'cart' %}";
-                })
-                .catch(err => {
-                    alert("Payment succeeded but server failed to update. Try refreshing cart.");
-                    console.error(err);
+                .then(() => {
+                    // Success! Go back to cart to see the Tracker
                     window.location.href = "{% url 'cart' %}";
                 });
-            },
-            onClose: function() {
-                alert('Payment window closed.');
             }
         });
         handler.openIframe();
     }
 </script>
-
-
 </body>
 </html>

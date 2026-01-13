@@ -453,6 +453,7 @@ from .models import CartItem, Profile, Delivery
 
 
 def payment(request):
+    # Determine the user's cart
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
     else:
@@ -465,32 +466,36 @@ def payment(request):
     totals = calculate_cart_totals(cart_items)
 
     if request.method == "POST":
-        request.session['paid'] = True
-
         if not cart_items.exists():
             return JsonResponse({'success': False, 'error': 'Cart is empty'})
 
+        # 1. Capture data from the JavaScript fetch request
+        try:
+            # If you are sending JSON data from JS
+            data = json.loads(request.body)
+            phone = data.get('phone', 'Not provided')
+        except:
+            # Fallback for standard form POST
+            phone = request.POST.get('phone', 'Not provided')
+
+        # 2. Generate the items summary before clearing the cart
+        # This creates a string like: "2x Greek salad, 1x Soda"
+        items_summary = ", ".join([f"{item.quantity}x {item.food_name}" for item in cart_items])
+
         first_item = cart_items.first()
-
-        # Get phone
-        phone = "Not provided"
-        if request.user.is_authenticated:
-            profile, _ = Profile.objects.get_or_create(user=request.user)
-            phone = profile.phone_number or "Not provided"
-
-        # Get landmark & location
         landmark = first_item.address_text or "No landmark provided"
         lat = float(first_item.lat) if first_item.lat else 0.0
         lng = float(first_item.lon) if first_item.lon else 0.0
 
-        # Create delivery (ONLY ONCE)
+        # 3. Create delivery using DIRECT data (No Profile needed)
         delivery = Delivery.objects.create(
             customer=request.user if request.user.is_authenticated else None,
             customer_name=request.user.username if request.user.is_authenticated else "Guest",
             total_amount=totals['grand_total'],
+            items_json=items_summary,  # Now capturing items!
             lat=lat,
             lng=lng,
-            phone_number=phone,
+            phone_number=phone,        # Capturing direct from the form
             landmark=landmark,
             status="new"
         )
@@ -498,7 +503,7 @@ def payment(request):
         request.session['paid'] = True
         request.session['delivery_token'] = delivery.token
 
-        # 🔒 TELEGRAM SEND — PROTECTED
+        # 4. Telegram Alerts
         if not delivery.notified:
             if lat != 0.0 and lng != 0.0:
                 send_telegram_location(lat, lng)
@@ -507,18 +512,19 @@ def payment(request):
                 f"🍔 New Order!\n"
                 f"👤 Customer: {delivery.customer_name}\n"
                 f"📞 Phone: {phone}\n"
+                f"📦 Items: {items_summary}\n"
                 f"📍 Landmark: {landmark}\n"
                 f"💰 Total: GHS {totals['grand_total']}"
             )
-
             delivery.notified = True
             delivery.save()
 
-        # Clear cart AFTER everything
+        # 5. Clear cart
         cart_items.delete()
 
         return JsonResponse({'success': True, 'message': 'Order placed successfully!'})
 
+    # (Keep context as is for the GET request)
     context = {
         'cart_items': cart_items,
         'subtotal': totals['subtotal'],
@@ -527,9 +533,7 @@ def payment(request):
         'paystack_amount': int(totals['grand_total'] * 100),
         'paystack_public_key': settings.PAYSTACK_PUBLIC_KEY,
     }
-
     return render(request, 'payment.html', context)
-
 
 @login_required
 def create_delivery_from_cart(request):
@@ -602,28 +606,25 @@ def save_delivery_details(request):
 @require_POST
 def accept_delivery(request, delivery_id):
     try:
-        # Check if the user is a driver
         driver_profile = request.user.driver
-    except Driver.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'Driver profile not found.'}, status=403)
+        delivery = get_object_or_404(Delivery, id=delivery_id, status="new")
+        print(f"DEBUG: Delivery found. Status is: {delivery.status}")
 
-    # Get the delivery
-    delivery = get_object_or_404(Delivery, id=delivery_id)
-
-    # Check if it's still available
-    if delivery.status == "new" and delivery.driver is None:
+        # Update delivery status and assign driver
         delivery.driver = driver_profile
-        delivery.status = "picked"  # Changing status removes it from 'New' and puts it in 'Active'
+        delivery.status = "picked"  # Matches your 'my_jobs' filter
         delivery.save()
 
         return JsonResponse({
             'success': True,
-            'message': 'Order accepted!',
-            'lat': delivery.lat,
-            'lon': delivery.lon
+            'lat': str(delivery.lat),  # Send coordinates back to JS
+            'lng': str(delivery.lng)
         })
-    else:
-        return JsonResponse({'success': False, 'error': 'Order already taken by another driver.'})
+    except Driver.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Not registered as a driver.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
 
 # Decline delivery
 @csrf_exempt
@@ -640,16 +641,20 @@ def decline_delivery(request, delivery_id):
 @login_required
 @require_POST
 def verify_delivery_token(request, delivery_id):
-    """View for the Driver to enter the customer's code"""
     data = json.loads(request.body)
-    entered_token = data.get('token')
-
-    # Ensure this delivery is actually assigned to the driver calling this
+    token_entered = data.get('token')
     delivery = get_object_or_404(Delivery, id=delivery_id, driver__user=request.user)
 
-    if str(entered_token) == str(delivery.token):
-        delivery.status = "delivered"
+    # Assuming your Delivery model has a 'delivery_token' field
+    if delivery.delivery_token == token_entered:
+        delivery.status = "completed"
         delivery.save()
         return JsonResponse({'success': True})
 
-    return JsonResponse({'success': False, 'error': 'Invalid Code'})
+    return JsonResponse({'success': False, 'error': 'Incorrect token.'})
+
+
+def check_new_jobs(request):
+    # Count only the jobs that haven't been picked up yet
+    count = Delivery.objects.filter(status="new", driver=None).count()
+    return JsonResponse({'count': count})

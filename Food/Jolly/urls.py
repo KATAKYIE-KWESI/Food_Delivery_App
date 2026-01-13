@@ -27,6 +27,7 @@ urlpatterns = [
     path("driver/accept-delivery/<int:delivery_id>/", accept_delivery),
     path("driver/decline-delivery/<int:delivery_id>/", decline_delivery),
     path('verify-token/<int:delivery_id>/', views.verify_delivery_token, name='verify_token'),
+    path('check-new-jobs/', views.check_new_jobs, name='check_new_jobs'),
 
 
 

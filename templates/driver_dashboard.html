@@ -188,48 +188,58 @@
         modal.style.display = 'flex';
     }
 
-    document.getElementById('modalConfirmBtn').onclick = function() {
+  document.getElementById('modalConfirmBtn').onclick = function() {
     const card = document.querySelector(`.delivery-card[data-id="${currentId}"]`);
 
     if(currentAction === 'accept') {
-        fetch(`/accept-delivery/${currentId}/`, {
+        // Ensure this URL matches your urls.py (e.g., /driver/accept-delivery/ or /accept-delivery/)
+        fetch(`/driver/accept-delivery/${currentId}/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
         })
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                // Remove from New Deliveries
+                // 1. Remove from New Deliveries list
                 card.remove();
 
-                // Update actions for Active Jobs
-                const actions = `
-                    <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lon}" target="_blank" class="action-btn-primary">
+                // 2. Update the internal HTML of the card for "Active" mode
+                const actions = card.querySelector('.delivery-actions');
+                actions.style.gridTemplateColumns = "1fr 1fr";
+
+                // Use data.lng here as well!
+                actions.innerHTML = `
+                    <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}" target="_blank" class="action-btn-primary">
                         <i class="fa-solid fa-map"></i> View Map
                     </a>
                     <button class="action-btn-success" onclick="openTokenModal('${currentId}')">
                         <i class="fa-solid fa-key"></i> Complete
                     </button>
                 `;
-                card.querySelector('.delivery-actions').innerHTML = actions;
 
-                // Prepend to Active Jobs
+                // 3. Update the status badge visually
+                const badge = card.querySelector('.priority-badge');
+                if(badge) {
+                    badge.innerText = "In Transit";
+                    badge.className = "priority-badge normal";
+                }
+
+                // 4. Prepend to Active Jobs container
                 const activeContainer = document.getElementById('myDeliveriesContainer');
-                activeContainer.prepend(card);
 
-                // Remove empty message if exists
-                const emptyMsg = document.querySelector('.deliveries-section .empty-msg');
+                // Clear the "No active jobs" message if it exists
+                const emptyMsg = activeContainer.querySelector('.empty-msg');
                 if(emptyMsg) emptyMsg.remove();
+
+                activeContainer.prepend(card);
 
             } else {
                 alert(data.error || "Could not accept delivery.");
             }
         });
     } else {
-        // Decline: remove card
         card.remove();
     }
-
     closeModals();
 };
 
@@ -269,6 +279,34 @@
             alert("Please enter a 6-digit code.");
         }
     };
+
+ // Initialize with the current count from the template .Checking for new deliveries without refreshing the page
+let lastJobCount = {{ deliveries|length }};
+
+function pollForJobs() {
+    fetch('/check-new-jobs/')
+        .then(response => response.json())
+        .then(data => {
+            // If the count on the server is higher than what we see, a new job arrived!
+            if (data.count > lastJobCount) {
+                console.log("New delivery found! Refreshing...");
+
+                // Play a subtle notification sound (optional)
+                // let audio = new Audio('{% static "sounds/notification.mp3" %}');
+                // audio.play();
+
+                // Refresh the feed
+                location.reload();
+            } else if (data.count < lastJobCount) {
+                // Someone else grabbed a job, update the count without reloading
+                lastJobCount = data.count;
+            }
+        })
+        .catch(err => console.log("Polling error:", err));
+}
+
+// Check every 10 seconds
+setInterval(pollForJobs, 10000);
 </script>
 </body>
 </html>
