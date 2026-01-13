@@ -638,20 +638,26 @@ def decline_delivery(request, delivery_id):
     return JsonResponse({"success": False}, status=400)
 
 
+
 @login_required
 @require_POST
 def verify_delivery_token(request, delivery_id):
-    data = json.loads(request.body)
-    token_entered = data.get('token')
-    delivery = get_object_or_404(Delivery, id=delivery_id, driver__user=request.user)
+    try:
+        data = json.loads(request.body)
+        token_entered = data.get('token')
 
-    # Assuming your Delivery model has a 'delivery_token' field
-    if delivery.delivery_token == token_entered:
-        delivery.status = "completed"
-        delivery.save()
-        return JsonResponse({'success': True})
+        # Get delivery specifically assigned to THIS driver
+        delivery = get_object_or_404(Delivery, id=delivery_id, driver__user=request.user)
 
-    return JsonResponse({'success': False, 'error': 'Incorrect token.'})
+        # FIX: Changed delivery_token to token
+        if delivery.token == token_entered:
+            delivery.status = "delivered"  # Matches our earnings/history filter
+            delivery.save()
+            return JsonResponse({'success': True})
+
+        return JsonResponse({'success': False, 'error': 'Incorrect token.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 def check_new_jobs(request):
