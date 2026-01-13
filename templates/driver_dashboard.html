@@ -71,15 +71,21 @@
                     {% for d in my_jobs %}
                     <div class="delivery-card active-job" data-id="{{ d.id }}">
                         <div class="delivery-header">
-                            <span class="order-number">#{{ d.order_id }}</span>
+                            <span class="order-number">#{{ d.id }}</span>
                             <div class="priority-badge normal">In Transit</div>
                         </div>
                         <div class="delivery-body">
                             <h4>{{ d.customer_name }}</h4>
+                            <p><a href="tel:{{ d.phone_number }}" style="color:var(--success); text-decoration:none; font-weight:bold;">
+                                <i class="fa-solid fa-phone"></i> {{ d.phone_number }}
+                            </a></p>
                             <p><i class="fa-solid fa-location-dot"></i> {{ d.landmark }}</p>
+                            <div style="background: #f1f1f1; padding: 8px; border-radius: 5px; margin-top: 10px; font-size: 13px;">
+                                <strong>Items:</strong> {{ d.items_json }}
+                            </div>
                         </div>
                         <div class="delivery-actions" style="grid-template-columns: 1fr 1fr;">
-                             <a href="https://www.google.com/maps/search/?api=1&query={{ d.lat }},{{ d.lon }}" target="_blank" class="action-btn-primary">
+                             <a href="https://www.google.com/maps/search/?api=1&query={{ d.lat }},{{ d.lng }}" target="_blank" class="action-btn-primary">
                                 <i class="fa-solid fa-map"></i> View Map
                             </a>
                             <button class="action-btn-success" onclick="openTokenModal('{{ d.id }}')">
@@ -99,31 +105,39 @@
                 </div>
 
                 <div class="deliveries-container">
-                    {% for d in deliveries %}
-                    <div class="delivery-card" data-id="{{ d.id }}">
-                        <div class="delivery-header">
-                            <span class="order-number">#{{ d.order_id|default:forloop.counter }}</span>
-                            <div class="priority-badge {{ d.priority|default:'normal' }}">
-                                {{ d.priority|default:"Normal" }}
-                            </div>
-                        </div>
-                        <div class="delivery-body">
-                            <h4>{{ d.customer_name }}</h4>
-                            <p><i class="fa-solid fa-location-dot"></i> {{ d.landmark|default:"Location provided" }}</p>
+                {% for d in deliveries %}
+                <div class="delivery-card" data-id="{{ d.id }}">
+                    <div class="delivery-header">
+                        <span class="order-number">#{{ d.id }}</span>
+                        <div class="priority-badge normal">NEW</div>
+                    </div>
+                    <div class="delivery-body">
+                        <h4>{{ d.customer_name }}</h4>
+                        <p><i class="fa-solid fa-location-dot"></i> {{ d.landmark|default:"Location provided" }}</p>
 
-                            <div class="delivery-info">
-                                <div class="info-item"><span class="label">Payment</span><span class="value">GHS {{ d.amount }}</span></div>
-                                <div class="info-item"><span class="label">Dist</span><span class="value">{{ d.distance }}km</span></div>
-                                <div class="info-item"><span class="label">Earn</span><span class="value" style="color:var(--success)">GHS {{ d.driver_earning }}</span></div>
-                            </div>
+                        <div style="margin: 10px 0; font-size: 13px; color: #555;">
+                            <p><i class="fa-solid fa-phone"></i> {{ d.phone_number }}</p>
+                            <p><strong>Order:</strong> {{ d.items_json|truncatechars:50 }}</p>
                         </div>
-                        <div class="delivery-actions">
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ d.lat }},{{ d.lon }}" target="_blank" class="action-btn-primary"><i class="fa-solid fa-map"></i></a>
-                            <button class="action-btn-success" onclick="handleConfirmation('{{ d.id }}', 'accept')">Accept</button>
-                            <button class="action-btn-danger" onclick="handleConfirmation('{{ d.id }}', 'decline')"><i class="fa-solid fa-times"></i></button>
+
+                        <div class="delivery-info">
+                            <div class="info-item">
+                                <span class="label">Payment</span>
+                                <span class="value">GHS {{ d.total_amount }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">Earn</span>
+                                <span class="value" style="color:var(--success)">GHS 5.00</span>
+                            </div>
                         </div>
                     </div>
-                    {% endfor %}
+                    <div class="delivery-actions">
+                        <a href="https://www.google.com/maps/search/?api=1&query={{ d.lat }},{{ d.lng }}" target="_blank" class="action-btn-primary"><i class="fa-solid fa-map"></i></a>
+                        <button class="action-btn-success" onclick="handleConfirmation('{{ d.id }}', 'accept')">Accept</button>
+                        <button class="action-btn-danger" onclick="handleConfirmation('{{ d.id }}', 'decline')"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                </div>
+                {% endfor %}
                 </div>
             </section>
         </div>
