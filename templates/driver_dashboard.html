@@ -206,7 +206,6 @@
     const card = document.querySelector(`.delivery-card[data-id="${currentId}"]`);
 
     if(currentAction === 'accept') {
-        // Ensure this URL matches your urls.py (e.g., /driver/accept-delivery/ or /accept-delivery/)
         fetch(`/driver/accept-delivery/${currentId}/`, {
             method: 'POST',
             headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
@@ -214,14 +213,42 @@
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                // 1. Remove from New Deliveries list
+                // 1. Get current values from the card before moving it
+                const customerName = card.querySelector('h4').innerText;
+                const landmark = card.querySelector('.fa-location-dot').parentElement.innerText;
+
+                // 2. Extract Phone and Items from the 'New' card
+                // (Assumes you've added them to the 'New Deliveries' section as instructed)
+                const phone = card.querySelector('.fa-phone').parentElement.innerText;
+                const itemsText = card.querySelector('strong').parentElement.innerText;
+
+                // 3. Remove card from 'New' list
                 card.remove();
 
-                // 2. Update the internal HTML of the card for "Active" mode
+                // 4. Transform the card into 'Active' layout
+                card.classList.add('active-job');
+                const badge = card.querySelector('.priority-badge');
+                if(badge) {
+                    badge.innerText = "In Transit";
+                    badge.className = "priority-badge normal";
+                }
+
+                // 5. Update the body with the phone link and map
+                const body = card.querySelector('.delivery-body');
+                body.innerHTML = `
+                    <h4>${customerName}</h4>
+                    <p><a href="tel:${phone}" style="color:var(--success); text-decoration:none; font-weight:bold;">
+                        <i class="fa-solid fa-phone"></i> ${phone}
+                    </a></p>
+                    <p><i class="fa-solid fa-location-dot"></i> ${landmark}</p>
+                    <div style="background: #f1f1f1; padding: 8px; border-radius: 5px; margin-top: 10px; font-size: 13px;">
+                        ${itemsText}
+                    </div>
+                `;
+
+                // 6. Update the buttons (Map and Complete)
                 const actions = card.querySelector('.delivery-actions');
                 actions.style.gridTemplateColumns = "1fr 1fr";
-
-                // Use data.lng here as well!
                 actions.innerHTML = `
                     <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}" target="_blank" class="action-btn-primary">
                         <i class="fa-solid fa-map"></i> View Map
@@ -231,20 +258,10 @@
                     </button>
                 `;
 
-                // 3. Update the status badge visually
-                const badge = card.querySelector('.priority-badge');
-                if(badge) {
-                    badge.innerText = "In Transit";
-                    badge.className = "priority-badge normal";
-                }
-
-                // 4. Prepend to Active Jobs container
+                // 7. Move to Active Container
                 const activeContainer = document.getElementById('myDeliveriesContainer');
-
-                // Clear the "No active jobs" message if it exists
                 const emptyMsg = activeContainer.querySelector('.empty-msg');
                 if(emptyMsg) emptyMsg.remove();
-
                 activeContainer.prepend(card);
 
             } else {
