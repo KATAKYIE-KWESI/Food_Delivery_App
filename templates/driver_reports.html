@@ -1,0 +1,32 @@
+<div class="reports-container" style="padding: 20px; font-family: sans-serif;">
+    <h2><i class="fa-solid fa-chart-line"></i> Performance Report</h2>
+
+    <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px;">
+        <div class="stat-box" style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+            <p>Weekly Earnings (7d)</p>
+            <h3>GHS {{ weekly_earned }}</h3>
+        </div>
+        <div class="stat-box" style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+            <p>Total Lifetime</p>
+            <h3>GHS {{ total_earned }}</h3>
+        </div>
+    </div>
+
+    <h3>Recent Activity</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+        <tr style="border-bottom: 2px solid #eee; text-align: left;">
+            <th style="padding: 10px;">Date</th>
+            <th>Customer</th>
+            <th>Earned</th>
+        </tr>
+        {% for job in history %}
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 10px;">{{ job.created_at|date:"M d" }}</td>
+            <td>{{ job.customer_name }}</td>
+            <td style="color: green;">GHS 5.00</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <br>
+    <a href="{% url 'driver_dashboard' %}" style="text-decoration: none; color: blue;">← Back to Dashboard</a>
+</div>
