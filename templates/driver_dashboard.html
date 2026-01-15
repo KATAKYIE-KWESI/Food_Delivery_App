@@ -49,7 +49,10 @@
     <main class="main-content">
         <aside class="quick-actions">
             <h3>Menu</h3>
-            <button class="action-btn"><i class="fa-solid fa-clock-rotate-left"></i> History</button>
+
+            <button class="action-btn" onclick="toggleHistory(event)">
+                <i class="fa-solid fa-clock-rotate-left"></i> History
+            </button>
             <button class="action-btn"><i class="fa-solid fa-chart-line"></i> Reports</button>
             <button class="action-btn" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> Refresh Feed</button>
 
@@ -138,6 +141,30 @@
                     </div>
                 </div>
                 {% endfor %}
+                </div>
+            </section>
+
+
+            <section class="history-section" id="historySection" style="display:none; margin-top:30px;">
+                <div class="section-header">
+                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Delivery History</h2>
+                </div>
+                <div class="deliveries-container">
+                    {% for h in history_jobs %}
+                    <div class="delivery-card" style="border-left: 5px solid #27ae60; opacity: 0.8;">
+                        <div class="delivery-header">
+                            <span class="order-number">#{{ h.id }}</span>
+                            <div class="priority-badge" style="background:#27ae60; color:white;">Completed</div>
+                        </div>
+                        <div class="delivery-body">
+                            <h4>{{ h.customer_name }}</h4>
+                            <p style="font-size: 12px; color: #888;">Items: {{ h.items_json|truncatechars:100 }}</p>
+                            <p style="font-weight: bold; color: #27ae60;">Earned: GHS 5.00</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="empty-msg">You haven't completed any deliveries yet.</p>
+                    {% endfor %}
                 </div>
             </section>
         </div>
@@ -338,6 +365,31 @@ function pollForJobs() {
 
 // Check every 10 seconds
 setInterval(pollForJobs, 10000);
+
+
+function toggleHistory(event) {
+    const activeJobs = document.getElementById('activeJobs');
+    const newDeliveries = document.querySelector('.deliveries-section');
+    const historySection = document.getElementById('historySection');
+    const historyBtn = event.currentTarget;
+
+    if (historySection.style.display === 'none') {
+        // Show History, Hide Live Feed
+        historySection.style.display = 'block';
+        activeJobs.style.display = 'none';
+        newDeliveries.style.display = 'none';
+        historyBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Back to Feed';
+        historyBtn.style.background = '#eee';
+    } else {
+        // Hide History, Show Live Feed
+        historySection.style.display = 'none';
+        activeJobs.style.display = 'block';
+        newDeliveries.style.display = 'block';
+        historyBtn.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> History';
+        historyBtn.style.background = '';
+    }
+}
+
 </script>
 </body>
 </html>

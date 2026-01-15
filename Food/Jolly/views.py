@@ -3,7 +3,6 @@ import json
 from decimal import Decimal
 from itertools import groupby
 from operator import itemgetter
-from django.urls import reverse_lazy
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.shortcuts import render, redirect, get_object_or_404
@@ -13,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from .models import CartItem, Profile, SecurityLog, Driver
 from .utils.telegram import send_telegram_alert, send_telegram_location
+from django.http import JsonResponse
 from .models import Delivery
 
 #Calculates total price of items in the cart
@@ -98,7 +98,7 @@ def mobile(request):
     return render(request, 'mobile.html')
 
 
-# UPDATE YOUR cart VIEW TO THIS:
+
 def cart(request):
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
@@ -111,17 +111,28 @@ def cart(request):
 
     totals = calculate_cart_totals(cart_items)
 
+    # --- ADD THIS LOGIC HERE ---
+    # Find the most recent delivery for this user that isn't finished yet
+    active_delivery = None
+    if request.user.is_authenticated:
+        active_delivery = Delivery.objects.filter(customer=request.user).exclude(status="delivered").last()
+
+    # If the user is a Guest, we find the delivery by the token stored in their session
+    if not active_delivery and request.session.get('delivery_token'):
+        active_delivery = Delivery.objects.filter(token=request.session.get('delivery_token')).last()
+    # ---------------------------
+
     context = {
         'cart_items': cart_items,
         'cart_count': sum(item.quantity for item in cart_items),
         'cart_total': totals['subtotal'],
         'grand_total': totals['grand_total'],
-
-        # CHANGE THESE TWO LINES:
-        'paid': request.session.get('paid', False),  # Use .get not .pop
+        'paid': request.session.get('paid', False),
         'delivery_token': request.session.get('delivery_token'),
+        'delivery_id': active_delivery.id if active_delivery else None,
     }
     return render(request, 'cart.html', context)
+
 
 @require_POST
 def add_to_cart(request):
@@ -412,52 +423,29 @@ def checkout_view(request):
 
 #View for driver
 @login_required
-
 def driver_dashboard(request):
-    # Deliveries waiting for a driver
+    # 1. Deliveries waiting for a driver
     available_deliveries = Delivery.objects.filter(status="new", driver=None)
 
-    # Jobs currently being handled by THIS driver
-    # Note: Using request.user directly to avoid 'Profile' or 'Driver' model issues
+    # 2. Jobs currently being handled by THIS driver
     my_current_jobs = Delivery.objects.filter(driver__user=request.user, status="picked")
 
-    # CALCULATE EARNINGS:
-    # Count how many deliveries this user has finished
-    completed_count = Delivery.objects.filter(driver__user=request.user, status="delivered").count()
+    # 3. FIX: Define the history_jobs variable (Completed deliveries)
+    # We filter by the driver's profile and the "delivered" status
+    history_jobs = Delivery.objects.filter(driver__user=request.user, status="delivered").order_by('-id')
+
+    # 4. CALCULATE EARNINGS:
+    completed_count = history_jobs.count()
     total_earnings = completed_count * 5.0  # GHS 5.00 per delivery
 
     return render(request, "driver_dashboard.html", {
         "deliveries": available_deliveries,
         "my_jobs": my_current_jobs,
+        "history_jobs": history_jobs,  # Now this variable exists!
         "total_earnings": f"{total_earnings:.2f}",
         "driver": {"name": request.user.username}
     })
 
-
-
-@login_required
-def accept_delivery(request, delivery_id):
-    # Ensure the user is actually a Driver
-    try:
-        driver_profile = request.user.driver
-    except Driver.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'You are not a registered driver.'})
-
-    # Find the delivery and assign the driver
-    delivery = Delivery.objects.get(id=delivery_id)
-
-    if delivery.driver is None:
-        delivery.driver = driver_profile
-        delivery.status = "picked"
-        delivery.save()
-        return JsonResponse({'success': True, 'message': 'Order accepted!'})
-    else:
-        return JsonResponse({'success': False, 'error': 'Order already taken by another driver.'})
-
-
-import json
-from django.http import JsonResponse
-from .models import CartItem, Profile, Delivery
 
 
 def payment(request):
@@ -649,7 +637,6 @@ def decline_delivery(request, delivery_id):
 
 @login_required
 @require_POST
-
 def verify_delivery_token(request, delivery_id):
     try:
         data = json.loads(request.body)
@@ -672,3 +659,13 @@ def check_new_jobs(request):
     # Count only the jobs that haven't been picked up yet
     count = Delivery.objects.filter(status="new", driver=None).count()
     return JsonResponse({'count': count})
+
+
+
+
+def check_delivery_status(request, delivery_id):
+    try:
+        delivery = Delivery.objects.get(id=delivery_id)
+        return JsonResponse({'status': delivery.status})
+    except Delivery.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)

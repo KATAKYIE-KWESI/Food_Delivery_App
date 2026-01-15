@@ -23,41 +23,42 @@
         <li><a href="{% url 'homepage' %}#contact">Contact</a></li>
     </ul>
 </div>
-
 <div class="cart-container">
 
     {% if paid %}
     <div class="cart-content">
-        <div class="delivery-tracker" style="display: block; width: 100%;">
-            <div style="text-align: center; margin-bottom: 25px;">
-                <i class="fa-solid fa-circle-check" style="color: #27ae60; font-size: 50px;"></i>
-                <h2 style="margin-top: 15px;">Order Successfully Placed!</h2>
-                <p>Your meal is being prepared and will be with you shortly.</p>
-            </div>
 
-            {% if delivery_token %}
-            <div id="tokenDisplay" style="background: #fff3cd; border: 2px dashed #856404; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                <p style="font-size: 14px; font-weight: bold; color: #856404; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Share this code with Driver</p>
-                <h2 style="font-size: 45px; letter-spacing: 10px; margin: 15px 0; color: #333; font-family: monospace;">{{ delivery_token }}</h2>
-                <p style="font-size: 12px; color: #666; margin: 0;">This ensures your food is delivered securely to you.</p>
+        <div id="activeTrackerSection">
+            <div class="delivery-tracker" style="text-align: center; margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 5px;">Share this code with your driver:</p>
+                <h2 style="font-size: 36px; letter-spacing: 5px; color: #ff4d4d;">{{ delivery_token }}</h2>
             </div>
-            {% endif %}
 
             <div class="tracker-bar">
                 <div id="progressBar" class="progress"></div>
                 <div id="carMarker" class="car-marker">🚗</div>
             </div>
 
-            <div class="tracker-info" style="display: flex; justify-content: space-between; margin-top: 15px;">
+            <div class="tracker-info" style="display: flex; justify-content: space-between; margin-top: 15px; margin-bottom: 30px;">
                 <span id="timerText" style="font-weight: bold; font-size: 18px; color: #e67e22;">02:00</span>
                 <span class="tracker-status" style="font-weight: 500;">Driver is heading to your location...</span>
             </div>
+        </div>
 
-            <div style="text-align: center; margin-top: 40px;">
-                <a href="{% url 'homepage' %}" class="browse-menu-btn" style="background: #333; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 8px;">
-                    <i class="fa-solid fa-house"></i> Return to Home
-                </a>
-            </div>
+        <div id="thankYouSection" style="display: none; text-align: center; padding: 50px 20px;">
+            <i class="fa-solid fa-circle-check" style="color: #27ae60; font-size: 80px; margin-bottom: 20px;"></i>
+            <h2 style="font-size: 28px; color: #333;">Thank you for choosing JollyFoods!</h2>
+            <p style="color: #666; font-size: 18px; margin-bottom: 30px;">Your meal has been safely delivered. Enjoy!</p>
+
+            <a href="{% url 'homepage' %}" class="browse-menu-btn" style="background: #ff4d4d; color: white; padding: 15px 40px; text-decoration: none; border-radius: 30px; font-weight: bold; display: inline-block;">
+                <i class="fa-solid fa-utensils"></i> Browse More
+            </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="{% url 'homepage' %}" style="color: #333; text-decoration: none; font-size: 14px;">
+                <i class="fa-solid fa-house"></i> Return to Home
+            </a>
         </div>
     </div>
 
@@ -154,6 +155,36 @@
             if(locationSection) locationSection.style.display = 'none';
         }
     });
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // We only poll if the order is actually paid
+    const isPaid = "{{ paid }}" === "True";
+    // You need to pass the delivery_id from your view to the template
+    const deliveryId = "{{ delivery_id }}";
+
+    if (isPaid && deliveryId) {
+        const checkStatus = setInterval(() => {
+            fetch(`/check-delivery-status/${deliveryId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // If the status in your model is now "delivered"
+                    if (data.status === 'delivered') {
+                        // 1. Hide the tracker and token
+                        document.getElementById('activeTrackerSection').style.display = 'none';
+
+                        // 2. Show the Thank You message
+                        document.getElementById('thankYouSection').style.display = 'block';
+
+                        // 3. Stop checking
+                        clearInterval(checkStatus);
+                    }
+                })
+                .catch(err => console.error("Error checking status:", err));
+        }, 5000); // Checks every 5 seconds
+    }
+});
 </script>
 
 </body>
