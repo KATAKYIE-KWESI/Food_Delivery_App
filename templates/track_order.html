@@ -1,0 +1,19 @@
+<div class="tracking-card">
+    <h2>Order Status: {{ delivery.get_status_display }}</h2>
+
+    {% if delivery.driver %}
+    <div class="driver-details" style="background: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 20px; border: 1px solid #ddd;">
+        <h3><i class="fa-solid fa-motorcycle"></i> Driver Assigned</h3>
+        <p><strong>Driver Name:</strong> {{ delivery.driver.user.username }}</p>
+        <p><strong>Number Plate:</strong> <span style="background: #333; color: #fff; padding: 2px 8px; border-radius: 4px;">{{ delivery.driver.vehicle_plate }}</span></p>
+        <p><strong>Phone:</strong> <a href="tel:{{ delivery.driver.phone_number }}">{{ delivery.driver.phone_number }}</a></p>
+    </div>
+    {% else %}
+    <p>Waiting for a driver to accept your order...</p>
+    {% endif %}
+
+    <div class="token-section" style="margin-top: 20px; text-align: center; border-top: 2px dashed #ccc; padding-top: 20px;">
+        <p>Give this code to the driver upon arrival:</p>
+        <h1 style="letter-spacing: 5px; color: var(--primary);">{{ delivery.token }}</h1>
+    </div>
+</div>

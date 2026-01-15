@@ -669,3 +669,45 @@ def check_delivery_status(request, delivery_id):
         return JsonResponse({'status': delivery.status})
     except Delivery.DoesNotExist:
         return JsonResponse({'error': 'Not found'}, status=404)
+
+
+from django.db.models import Count, Sum
+from django.utils import timezone
+from datetime import timedelta
+
+
+# --- CUSTOMER VIEW ---
+def track_order(request, delivery_id):
+    delivery = get_object_or_404(Delivery, id=delivery_id)
+    # The 'driver' object is accessible via delivery.driver
+    return render(request, 'track_order.html', {'delivery': delivery})
+
+
+# --- DRIVER REPORT VIEW ---
+@login_required
+def driver_reports(request):
+    try:
+        driver_profile = request.user.driver
+    except Driver.DoesNotExist:
+        return redirect('homepage')
+
+    # Calculate Earnings
+    completed_jobs = Delivery.objects.filter(driver=driver_profile, status="delivered")
+
+    # Simple stats
+    total_delivered = completed_jobs.count()
+    total_earned = total_delivered * 5.00
+
+    # Weekly breakdown (Last 7 days)
+    last_week = timezone.now() - timedelta(days=7)
+    weekly_jobs = completed_jobs.filter(created_at__gte=last_week).count()
+    weekly_earned = weekly_jobs * 5.00
+
+    return render(request, "driver_reports.html", {
+        "total_delivered": total_delivered,
+        "total_earned": total_earned,
+        "weekly_jobs": weekly_jobs,
+        "weekly_earned": weekly_earned,
+        "history": completed_jobs.order_by('-created_at')[:10]  # Last 10 jobs
+    })
+

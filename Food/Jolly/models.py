@@ -60,6 +60,8 @@ class SecurityLog(models.Model):
 #Delivery details for Driver
 class Driver(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=15, help_text="Driver's contact number")
+    vehicle_plate = models.CharField(max_length=20, help_text="e.g., AS-202-26")
 
     def __str__(self):
         return self.user.username
