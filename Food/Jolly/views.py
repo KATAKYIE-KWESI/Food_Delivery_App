@@ -98,7 +98,7 @@ def mobile(request):
     return render(request, 'mobile.html')
 
 
-
+# UPDATE YOUR cart VIEW TO THIS:
 def cart(request):
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
@@ -115,9 +115,11 @@ def cart(request):
         'cart_items': cart_items,
         'cart_count': sum(item.quantity for item in cart_items),
         'cart_total': totals['subtotal'],
-        'grand_total': totals['grand_total'], # Use this in your HTML
-        'paid': request.session.pop('paid', False),
-        'delivery_token': request.session.get('delivery_token'),  # Show 6-digit code
+        'grand_total': totals['grand_total'],
+
+        # CHANGE THESE TWO LINES:
+        'paid': request.session.get('paid', False),  # Use .get not .pop
+        'delivery_token': request.session.get('delivery_token'),
     }
     return render(request, 'cart.html', context)
 
@@ -221,7 +223,7 @@ def signup_view(request):
         if len(password) < 6:
             return JsonResponse({'success': False, 'error': 'Password must be at least 6 characters'})
 
-        pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&]).+$'
+        pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+$'
         if not re.match(pattern, password):
              return JsonResponse({
                     'success': False,
@@ -459,7 +461,7 @@ from .models import CartItem, Profile, Delivery
 
 
 def payment(request):
-    # Determine the user's cart
+    # Determine the user's cart (Auth or Session)
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
     else:
@@ -469,35 +471,24 @@ def payment(request):
             session_key = request.session.session_key
         cart_items = CartItem.objects.filter(session_key=session_key)
 
+    if not cart_items.exists():
+        return redirect('homepage')
+
     totals = calculate_cart_totals(cart_items)
 
     if request.method == "POST":
-        if not cart_items.exists():
-            return JsonResponse({'success': False, 'error': 'Cart is empty'})
+        # 1. Payment is confirmed! Pull details stored in session
+        # (Stored earlier by save_delivery_details)
+        phone = request.session.get('temp_phone', 'Not provided')
+        landmark = request.session.get('temp_landmark', 'No landmark provided')
 
-        # 1. Capture DIRECT data from the JavaScript fetch request
-        # This is the most reliable way since you don't have Profiles
-        try:
-            data = json.loads(request.body)
-            phone = data.get('phone')
-            landmark = data.get('landmark') # Get landmark from JSON, not the database
-        except:
-            phone = request.POST.get('phone')
-            landmark = request.POST.get('landmark')
-
-        # Fallbacks if data is missing
-        phone = phone if phone else "Not provided"
-        landmark = landmark if landmark else "No landmark provided"
-
-        # 2. Generate items summary
-        items_summary = ", ".join([f"{item.quantity}x {item.food_name}" for item in cart_items])
-
-        # 3. Get Coordinates (These are still usually stored on the CartItem via location.js)
+        # 2. Get coordinates and prepare order summary
         first_item = cart_items.first()
         lat = float(first_item.lat) if first_item.lat else 0.0
         lng = float(first_item.lon) if first_item.lon else 0.0
+        items_summary = ", ".join([f"{item.quantity}x {item.food_name}" for item in cart_items])
 
-        # 4. Create delivery
+        # 3. Create the Delivery record (The actual order)
         delivery = Delivery.objects.create(
             customer=request.user if request.user.is_authenticated else None,
             customer_name=request.user.username if request.user.is_authenticated else "Guest",
@@ -505,31 +496,47 @@ def payment(request):
             items_json=items_summary,
             lat=lat,
             lng=lng,
-            phone_number=phone,      # <--- Saved directly
-            landmark=landmark,        # <--- Saved directly
+            phone_number=phone,
+            landmark=landmark,
             status="new"
         )
 
+        delivery.save()
+        # 4. Finalizing
+        # We store the token in the session just for the success page
         request.session['paid'] = True
         request.session['delivery_token'] = delivery.token
+        request.session.modified = True  # This tells Django to save the data right now
 
-        # 5. Telegram Alerts
-        send_telegram_alert(
-            f"🍔 New Order!\n"
-            f"👤 Customer: {delivery.customer_name}\n"
-            f"📞 Phone: {phone}\n"
-            f"📦 Items: {items_summary}\n"
-            f"📍 Landmark: {landmark}\n"
-            f"💰 Total: GHS {totals['grand_total']}"
-        )
+        # 5. Telegram Notifications
+        try:
+            send_telegram_alert(
+                f"💰 PAID ORDER: {delivery.token}\n"
+                f"📞 Phone: {phone}\n"
+                f"📍 Landmark: {landmark}\n"
+                f"💵 Total: GHS {totals['grand_total']}"
+            )
+            if lat != 0.0:
+                send_telegram_location(lat, lng)
+        except:
+            pass  # Prevent telegram errors from breaking the user experience
 
-        # 6. Clear cart
+        # 6. Clear the cart and cleanup session
         cart_items.delete()
+        if 'temp_phone' in request.session: del request.session['temp_phone']
+        if 'temp_landmark' in request.session: del request.session['temp_landmark']
 
         return JsonResponse({'success': True})
 
-    # (Keep context for GET request)
-    return render(request, 'payment.html', {'totals': totals}) # Simplified for brevity
+    # GET request: Show the payment page
+    return render(request, 'payment.html', {
+        'cart_items': cart_items,
+        'subtotal': totals['subtotal'],
+        'delivery_fee': totals['delivery_fee'],
+        'total_ghs': totals['grand_total'],
+        'paystack_amount': int(totals['grand_total'] * 100),  # Pesewas
+        'paystack_public_key': settings.PAYSTACK_PUBLIC_KEY,
+    })
 
 @login_required
 def create_delivery_from_cart(request):
@@ -580,22 +587,27 @@ def create_delivery_from_cart(request):
     return render(request, "order_success.html", {"order": new_order})
 
 
-
 @require_POST
 def save_delivery_details(request):
-    data = json.loads(request.body)
-    phone = data.get('phone')
-    landmark = data.get('landmark')
+    try:
+        data = json.loads(request.body)
+        phone = data.get('phone')
+        landmark = data.get('landmark')
 
-    if request.user.is_authenticated:
-        # Save Landmark to the Cart
-        CartItem.objects.filter(user=request.user).update(address_text=landmark)
-        # Save Phone to the User Profile
-        profile, _ = Profile.objects.get_or_create(user=request.user)
-        profile.phone_number = phone
-        profile.save()
+        # Store in session (Temporary memory)
+        request.session['temp_phone'] = phone
+        request.session['temp_landmark'] = landmark
 
-    return JsonResponse({'success': True})
+        # We still update the CartItem just in case
+        if request.user.is_authenticated:
+            CartItem.objects.filter(user=request.user).update(address_text=landmark)
+        else:
+            session_key = request.session.session_key
+            CartItem.objects.filter(session_key=session_key).update(address_text=landmark)
+
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 
 @login_required

@@ -26,80 +26,91 @@
 
 <div class="cart-container">
 
-{% if paid or cart_items %}
-<div class="cart-content">
+    {% if paid %}
+    <div class="cart-content">
+        <div class="delivery-tracker" style="display: block; width: 100%;">
+            <div style="text-align: center; margin-bottom: 25px;">
+                <i class="fa-solid fa-circle-check" style="color: #27ae60; font-size: 50px;"></i>
+                <h2 style="margin-top: 15px;">Order Successfully Placed!</h2>
+                <p>Your meal is being prepared and will be with you shortly.</p>
+            </div>
 
-    {% if cart_items %}
-    <div class="cart-items-section">
-        <h2>Your Items</h2>
-        {% for item in cart_items %}
-        <div class="cart-item" data-item-id="{{ item.id }}">
-            <img src="{% static 'assets/' %}{{ item.food_image }}" alt="{{ item.food_name }}">
-            <div class="item-info">
-                <h4>{{ item.food_name }}</h4>
-                <p class="item-price">${{ item.food_price }}</p>
+            {% if delivery_token %}
+            <div id="tokenDisplay" style="background: #fff3cd; border: 2px dashed #856404; padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                <p style="font-size: 14px; font-weight: bold; color: #856404; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Share this code with Driver</p>
+                <h2 style="font-size: 45px; letter-spacing: 10px; margin: 15px 0; color: #333; font-family: monospace;">{{ delivery_token }}</h2>
+                <p style="font-size: 12px; color: #666; margin: 0;">This ensures your food is delivered securely to you.</p>
             </div>
-            <div class="item-quantity">
-                <button class="qty-btn minus-btn" data-item-id="{{ item.id }}">−</button>
-                <span class="quantity">{{ item.quantity }}</span>
-                <button class="qty-btn plus-btn" data-item-id="{{ item.id }}">+</button>
+            {% endif %}
+
+            <div class="tracker-bar">
+                <div id="progressBar" class="progress"></div>
+                <div id="carMarker" class="car-marker">🚗</div>
             </div>
-            <div class="item-total"><p>${{ item.get_total_price }}</p></div>
-            <button class="remove-btn" data-item-id="{{ item.id }}"><i class="fa-solid fa-trash"></i></button>
+
+            <div class="tracker-info" style="display: flex; justify-content: space-between; margin-top: 15px;">
+                <span id="timerText" style="font-weight: bold; font-size: 18px; color: #e67e22;">02:00</span>
+                <span class="tracker-status" style="font-weight: 500;">Driver is heading to your location...</span>
+            </div>
+
+            <div style="text-align: center; margin-top: 40px;">
+                <a href="{% url 'homepage' %}" class="browse-menu-btn" style="background: #333; color: #fff; padding: 12px 25px; text-decoration: none; border-radius: 8px;">
+                    <i class="fa-solid fa-house"></i> Return to Home
+                </a>
+            </div>
         </div>
-        {% endfor %}
     </div>
 
-    <div class="order-summary-container">
-        <div class="summary-row"><span>Subtotal</span><span id="subtotal">GHS {{ cart_total }}</span></div>
-        <div class="summary-row"><span>Delivery</span><span>GHS 5.00</span></div>
-        <div class="summary-row total"><strong>Total</strong><strong id="total">GHS {{ grand_total|floatformat:2 }}</strong></div>
+    {% elif cart_items %}
+    <div class="cart-content">
+        <div class="cart-items-section">
+            <h2>Your Items</h2>
+            {% for item in cart_items %}
+            <div class="cart-item" data-item-id="{{ item.id }}">
+                <img src="{% static 'assets/' %}{{ item.food_image }}" alt="{{ item.food_name }}">
+                <div class="item-info">
+                    <h4>{{ item.food_name }}</h4>
+                    <p class="item-price">GHS {{ item.food_price }}</p>
+                </div>
+                <div class="item-quantity">
+                    <button class="qty-btn minus-btn" data-item-id="{{ item.id }}">−</button>
+                    <span class="quantity">{{ item.quantity }}</span>
+                    <button class="qty-btn plus-btn" data-item-id="{{ item.id }}">+</button>
+                </div>
+                <div class="item-total"><p>GHS {{ item.get_total_price }}</p></div>
+                <button class="remove-btn" data-item-id="{{ item.id }}"><i class="fa-solid fa-trash"></i></button>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="order-summary-container">
+            <div class="summary-row"><span>Subtotal</span><span id="subtotal">GHS {{ cart_total }}</span></div>
+            <div class="summary-row"><span>Delivery</span><span>GHS 5.00</span></div>
+            <div class="summary-row total"><strong>Total</strong><strong id="total">GHS {{ grand_total|floatformat:2 }}</strong></div>
+        </div>
+
+        <div class="delivery-location-section">
+            <div class="section-header"><div class="delivery-icon">🚚</div><h3>Delivery Details</h3></div>
+            <button id="loc-btn" class="quick-location-btn">📍 Share My Location</button>
+            <div class="form-group"><label>Phone Number *</label><input type="tel" id="phone" placeholder="24 123 4567"></div>
+            <div class="form-group"><label>Nearby Landmark *</label><input type="text" id="landmark" placeholder="e.g. Near the Total Filling Station"></div>
+        </div>
+
+        <button id="checkoutBtn" class="checkout-btn disabled" data-url="{% url 'payment' %}" disabled>
+            Enter details to checkout
+        </button>
     </div>
 
-    <div class="delivery-location-section">
-        <div class="section-header"><div class="delivery-icon">🚚</div><h3>Delivery Details</h3></div>
-        <button id="loc-btn" class="quick-location-btn">📍 Share My Location</button>
-        <div class="form-group"><label>Phone Number *</label><input type="tel" id="phone" placeholder="24 123 4567"></div>
-        <div class="form-group"><label>Nearby Landmark *</label><input type="text" id="landmark" placeholder="Melcom, KFC, Shell..."></div>
+    {% else %}
+    <div class="empty-cart-card">
+        <div class="empty-cart-body" style="text-align: center; padding: 50px 20px;">
+            <i class="fa-solid fa-utensils empty-icon" style="font-size: 60px; color: #ccc; margin-bottom: 20px;"></i>
+            <h2>Your cart is empty!</h2>
+            <p style="color: #666; margin-bottom: 25px;">Looks like you haven't added any delicious meals yet.</p>
+            <a href="{% url 'homepage' %}" class="browse-menu-btn" style="background: #ff4d4d; color: white; padding: 12px 30px; text-decoration: none; border-radius: 30px;">Browse Menu</a>
+        </div>
     </div>
-
-    <button id="checkoutBtn" class="checkout-btn disabled" data-url="{% url 'payment' %}" disabled>
-        Add delivery details to checkout
-    </button>
     {% endif %}
-
-    <div class="delivery-tracker" {% if not paid %}style="display:none;"{% endif %}>
-        <h3>Delivery Tracker</h3>
-
-        {% if paid and delivery_token %}
-        <div id="tokenDisplay" style="background: #fff3cd; border: 2px dashed #856404; padding: 15px; border-radius: 10px; text-align: center; margin-bottom: 20px;">
-            <p style="font-size: 12px; font-weight: bold; color: #856404; margin: 0;">VERIFICATION CODE</p>
-            <h2 style="font-size: 32px; letter-spacing: 5px; margin: 10px 0; color: #333;">{{ delivery_token }}</h2>
-            <p style="font-size: 11px; color: #666; margin: 0;">Show this to the driver when your food arrives.</p>
-        </div>
-        {% endif %}
-
-        <div class="tracker-bar">
-            <div id="progressBar" class="progress"></div>
-            <div id="carMarker" class="car-marker">🚗</div>
-        </div>
-        <div class="tracker-info">
-            <span id="timerText">00:00</span>
-            <span class="tracker-status">Driver is on the way...</span>
-        </div>
-    </div>
-
-</div>
-
-{% else %}
-<div class="empty-cart-card">
-    <div class="empty-cart-body">
-        <i class="fa-solid fa-utensils empty-icon"></i>
-        <h2>Your cart is empty!</h2>
-        <a href="{% url 'homepage' %}" class="browse-menu-btn">Browse Menu</a>
-    </div>
-</div>
-{% endif %}
 
 </div>
 
