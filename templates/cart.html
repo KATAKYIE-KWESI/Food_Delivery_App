@@ -31,8 +31,23 @@
         <div id="activeTrackerSection">
             <div class="delivery-tracker" style="text-align: center; margin-bottom: 20px;">
                 <p style="color: #666; margin-bottom: 5px;">Share this code with your driver:</p>
-                <h2 style="font-size: 36px; letter-spacing: 5px; color: #ff4d4d;">{{ delivery_token }}</h2>
+                <h2 style="font-size: 36px; letter-spacing: 5px; color: #ff4d4d;">{{ delivery.token }}</h2>
             </div>
+
+            {% if delivery.driver %}
+            <div class="driver-info-card" style="background: #fdf2f2; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #ffcccc; display: flex; align-items: center; gap: 15px;">
+                <div style="font-size: 24px; color: #ff4d4d;"><i class="fa-solid fa-motorcycle"></i></div>
+                <div style="flex-grow: 1; text-align: left;">
+                    <h4 style="margin: 0; font-size: 16px;">{{ delivery.driver.user.username }}</h4>
+                    <p style="margin: 0; font-family: monospace; font-weight: bold; color: #333;">
+                        {{ delivery.driver.vehicle_plate }}
+                    </p>
+                </div>
+                <a href="tel:{{ delivery.driver.phone_number }}" style="background: #27ae60; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                    <i class="fa-solid fa-phone"></i>
+                </a>
+            </div>
+            {% endif %}
 
             <div class="tracker-bar">
                 <div id="progressBar" class="progress"></div>
@@ -41,7 +56,9 @@
 
             <div class="tracker-info" style="display: flex; justify-content: space-between; margin-top: 15px; margin-bottom: 30px;">
                 <span id="timerText" style="font-weight: bold; font-size: 18px; color: #e67e22;">02:00</span>
-                <span class="tracker-status" style="font-weight: 500;">Driver is heading to your location...</span>
+                <span class="tracker-status" style="font-weight: 500;">
+                    {% if delivery.driver %} Driver is on the way! {% else %} Waiting for driver... {% endif %}
+                </span>
             </div>
         </div>
 
@@ -159,9 +176,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // We only poll if the order is actually paid
     const isPaid = "{{ paid }}" === "True";
-    // You need to pass the delivery_id from your view to the template
     const deliveryId = "{{ delivery_id }}";
 
     if (isPaid && deliveryId) {
@@ -169,22 +184,24 @@ document.addEventListener('DOMContentLoaded', () => {
             fetch(`/check-delivery-status/${deliveryId}/`)
                 .then(response => response.json())
                 .then(data => {
-                    // If the status in your model is now "delivered"
+                    // NEW: If a driver is assigned but NOT yet shown on screen, reload the page
+                    const driverCardExists = document.querySelector('.driver-info-card');
+                    if (data.driver_assigned && !driverCardExists) {
+                        location.reload();
+                    }
+
+                    // If delivered, show thank you
                     if (data.status === 'delivered') {
-                        // 1. Hide the tracker and token
                         document.getElementById('activeTrackerSection').style.display = 'none';
-
-                        // 2. Show the Thank You message
                         document.getElementById('thankYouSection').style.display = 'block';
-
-                        // 3. Stop checking
                         clearInterval(checkStatus);
                     }
                 })
                 .catch(err => console.error("Error checking status:", err));
-        }, 5000); // Checks every 5 seconds
+        }, 5000); // Check every 5 seconds
     }
 });
+
 </script>
 
 </body>

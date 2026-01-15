@@ -53,7 +53,9 @@
             <button class="action-btn" onclick="toggleHistory(event)">
                 <i class="fa-solid fa-clock-rotate-left"></i> History
             </button>
-            <button class="action-btn"><i class="fa-solid fa-chart-line"></i> Reports</button>
+           <a href="{% url 'driver_reports' %}" class="action-btn" style="text-decoration: none; display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-chart-line"></i> Reports
+           </a>
             <button class="action-btn" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> Refresh Feed</button>
 
             <div class="availability-card" style="margin-top:20px;">

@@ -29,6 +29,8 @@ urlpatterns = [
     path('verify-token/<int:delivery_id>/', views.verify_delivery_token, name='verify_token'),
     path('check-new-jobs/', views.check_new_jobs, name='check_new_jobs'),
     path('check-delivery-status/<int:delivery_id>/', views.check_delivery_status, name='check_status'),
+    path('track-order/<int:delivery_id>/', views.track_order, name='track_order'),
+    path('driver/reports/', views.driver_reports, name='driver_reports'),
 
 
 

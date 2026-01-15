@@ -14,6 +14,10 @@ from .models import CartItem, Profile, SecurityLog, Driver
 from .utils.telegram import send_telegram_alert, send_telegram_location
 from django.http import JsonResponse
 from .models import Delivery
+from django.db.models import Count, Sum
+from django.utils import timezone
+from datetime import timedelta
+
 
 #Calculates total price of items in the cart
 def calculate_cart_totals(cart_items):
@@ -129,6 +133,7 @@ def cart(request):
         'grand_total': totals['grand_total'],
         'paid': request.session.get('paid', False),
         'delivery_token': request.session.get('delivery_token'),
+        'delivery': active_delivery,
         'delivery_id': active_delivery.id if active_delivery else None,
     }
     return render(request, 'cart.html', context)
@@ -666,14 +671,15 @@ def check_new_jobs(request):
 def check_delivery_status(request, delivery_id):
     try:
         delivery = Delivery.objects.get(id=delivery_id)
-        return JsonResponse({'status': delivery.status})
+        return JsonResponse({
+            'status': delivery.status,
+            'driver_assigned': True if delivery.driver else False,
+            # We send these back so Javascript can detect a change
+            'driver_name': delivery.driver.user.username if delivery.driver else None
+        })
     except Delivery.DoesNotExist:
         return JsonResponse({'error': 'Not found'}, status=404)
 
-
-from django.db.models import Count, Sum
-from django.utils import timezone
-from datetime import timedelta
 
 
 # --- CUSTOMER VIEW ---

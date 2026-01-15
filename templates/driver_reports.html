@@ -1,32 +1,239 @@
-<div class="reports-container" style="padding: 20px; font-family: sans-serif;">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .reports-container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            font-size: 28px;
+            color: #2d3748;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        h2 i {
+            color: #667eea;
+            font-size: 32px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-box {
+            padding: 25px;
+            border-radius: 12px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.5), rgba(255,255,255,0));
+        }
+
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-box:first-child {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-box:last-child {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .stat-box p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-box h3 {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        h3 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        thead tr {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f7fafc;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .earned {
+            color: #48bb78;
+            font-weight: 600;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .back-link:hover {
+            transform: translateX(-3px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .reports-container {
+                padding: 25px;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 14px;
+            }
+
+            th, td {
+                padding: 12px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="reports-container">
     <h2><i class="fa-solid fa-chart-line"></i> Performance Report</h2>
 
-    <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px;">
-        <div class="stat-box" style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+    <div class="stats-grid">
+        <div class="stat-box">
             <p>Weekly Earnings (7d)</p>
-            <h3>GHS {{ weekly_earned }}</h3>
+            <h3>GHS {{ weekly_earned|floatformat:2 }}</h3>
         </div>
-        <div class="stat-box" style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+        <div class="stat-box">
             <p>Total Lifetime</p>
-            <h3>GHS {{ total_earned }}</h3>
+            <h3>GHS {{ total_earned|floatformat:2 }}</h3>
         </div>
     </div>
 
     <h3>Recent Activity</h3>
-    <table style="width: 100%; border-collapse: collapse;">
-        <tr style="border-bottom: 2px solid #eee; text-align: left;">
-            <th style="padding: 10px;">Date</th>
-            <th>Customer</th>
-            <th>Earned</th>
-        </tr>
-        {% for job in history %}
-        <tr style="border-bottom: 1px solid #eee;">
-            <td style="padding: 10px;">{{ job.created_at|date:"M d" }}</td>
-            <td>{{ job.customer_name }}</td>
-            <td style="color: green;">GHS 5.00</td>
-        </tr>
-        {% endfor %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Earned</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in history %}
+            <tr>
+                <td>{{ job.created_at|date:"M d" }}</td>
+                <td>{{ job.customer_name }}</td>
+                <td class="earned">GHS 5.00</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" style="text-align:center;">No completed deliveries yet.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-    <br>
-    <a href="{% url 'driver_dashboard' %}" style="text-decoration: none; color: blue;">← Back to Dashboard</a>
+
+    <a href="{% url 'driver_dashboard' %}" class="back-link">
+        <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+    </a>
 </div>
+</body>
+</html>
