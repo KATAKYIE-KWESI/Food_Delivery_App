@@ -38,6 +38,19 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'Jolly.apps.JollyConfig',  # Your app
+    'django.contrib.sites', # Required for allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google'
+]
+
+SITE_ID = 1
+
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 # --------------------------
@@ -52,7 +65,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'Jolly.middleware.CyberSecurityMiddleware'
+    'Jolly.middleware.CyberSecurityMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 # --------------------------
@@ -176,3 +190,8 @@ SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_SAMESITE = 'None'
 
+# Where to send users after they log in
+LOGIN_REDIRECT_URL = '/'
+
+# Where to send users after they log out
+LOGOUT_REDIRECT_URL = '/'

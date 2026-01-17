@@ -13,8 +13,17 @@
 </head>
 <body>
 
-<!--------------------------------- Nav Bar ------------------------------------------->
+<!----------------------------------- Nav Bar --------------------------------------------->
 <div class="navbar">
+<!--    {% if user.is_authenticated %}-->
+<!--    <div class="user-profile">-->
+<!--        <span>Hi, {{ user.username }}!</span>-->
+<!--        <form method="post" action="{% url 'account_logout' %}">-->
+<!--            {% csrf_token %}-->
+<!--            <button type="submit" class="logout-link">Logout</button>-->
+<!--        </form>-->
+<!--    </div>-->
+<!--    {% endif %}-->
 
     <!-- Logo -->
     <a href="{% url 'homepage' %}" class="logo">

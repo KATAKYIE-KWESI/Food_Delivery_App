@@ -22,4 +22,5 @@ admin.site.site_header = "JollyFoods Administration"  # Main header text (e.g., 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('Jolly.urls')),
+    path('accounts/', include('allauth.urls')),
 ]

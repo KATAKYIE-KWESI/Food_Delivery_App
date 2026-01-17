@@ -1,4 +1,4 @@
-<!-- Auth Modal Template -->
+{% load socialaccount %}
 <div class="auth-modal" id="authModal">
     <div class="auth-modal-overlay"></div>
     <div class="auth-modal-content">
@@ -6,11 +6,9 @@
             <i class="fa-solid fa-xmark"></i>
         </button>
 
-        <!-- CSRF hidden form to ensure cookie is set -->
         <form style="display:none">{% csrf_token %}</form>
 
         <div class="auth-container">
-            <!-- Login Form -->
             <div class="auth-form login-form active" id="loginForm">
                 <div class="auth-header">
                     <div class="auth-logo">
@@ -39,8 +37,6 @@
                         <a href="#" class="forgot-password">Forgot Password?</a>
                     </div>
 
-
-
                     <button type="submit" class="auth-btn">
                         <span>Sign In</span>
                         <i class="fa-solid fa-arrow-right"></i>
@@ -49,9 +45,9 @@
                     <div class="auth-divider"><span>or continue with</span></div>
 
                     <div class="social-login">
-                        <button type="button" class="social-btn google">
+                        <a href="{% provider_login_url 'google' %}" class="social-btn google">
                             <i class="fa-brands fa-google"></i>
-                        </button>
+                        </a>
                         <button type="button" class="social-btn facebook">
                             <i class="fa-brands fa-facebook-f"></i>
                         </button>
@@ -66,7 +62,6 @@
                 </form>
             </div>
 
-            <!-- Signup Form -->
             <div class="auth-form signup-form" id="signupForm">
                 <div class="auth-header">
                     <div class="auth-logo">
@@ -109,9 +104,9 @@
                     <div class="auth-divider"><span>or sign up with</span></div>
 
                     <div class="social-login">
-                        <button type="button" class="social-btn google">
+                        <a href="{% provider_login_url 'google' %}" class="social-btn google">
                             <i class="fa-brands fa-google"></i>
-                        </button>
+                        </a>
                         <button type="button" class="social-btn facebook">
                             <i class="fa-brands fa-facebook-f"></i>
                         </button>
