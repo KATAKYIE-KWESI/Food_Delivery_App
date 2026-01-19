@@ -144,7 +144,7 @@ function toggleChat() {
 
     if (card.style.display === 'none' || card.style.display === '') {
         card.style.display = 'flex';
-        input.focus(); // Auto-focus cursor
+        input.focus();
     } else {
         card.style.display = 'none';
     }
@@ -157,33 +157,74 @@ async function sendToAI() {
 
     if (!text) return;
 
-    // 1. Add User Message
+    // 1. Add User Message UI
     msgArea.innerHTML += `<div class="user-msg">${text}</div>`;
     input.value = '';
 
-    // 2. Add Loading State
+    // 2. Loading State
     const loadingId = "loading-" + Date.now();
     msgArea.innerHTML += `<div class="bot-msg" id="${loadingId}">...</div>`;
     msgArea.scrollTop = msgArea.scrollHeight;
 
     try {
-        // 3. Fetch from Django Backend
+        // 3. Fetch from Django
         const response = await fetch(`/ai-chat/?message=${encodeURIComponent(text)}`);
         const data = await response.json();
 
-        // 4. Replace loading dots with real answer
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) {
             loadingElement.innerText = data.reply;
         }
+
+        // --- AUTOMATION HANDLERS START ---
+
+        // Action A: Refresh Cart (Item added)
+        if (data.action === "refresh_ui") {
+            console.log("Item added to DB cart via AI.");
+            // Optional: If you have a cart counter, refresh it here:
+            // updateCartCount();
+        }
+
+        // Action B: Hardware GPS Request
+        if (data.action === "request_gps") {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    // Send coordinates to your existing location view
+                    fetch('/update-cart-location/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ lat: lat, lon: lon })
+                    }).then(() => {
+                        msgArea.innerHTML += `<div class="bot-msg">📍 Location synced! Now you can say "Ready to pay".</div>`;
+                        msgArea.scrollTop = msgArea.scrollHeight;
+                    });
+                });
+            }
+        }
+
+        // Action C: Auto-Redirect to Payment
+        if (data.action === "redirect") {
+            // Small delay so the user can read the bot's last message
+            setTimeout(() => {
+                window.location.href = data.url;
+            }, 2000);
+        }
+
+        // --- AUTOMATION HANDLERS END ---
+
     } catch (e) {
         const loadingElement = document.getElementById(loadingId);
         if (loadingElement) {
-            loadingElement.innerText = "Sorry, I'm having a technical glitch. Try again!";
+            loadingElement.innerText = "Connection lost. Try again! 😅";
         }
     }
 
-    // 5. Scroll to bottom
     msgArea.scrollTop = msgArea.scrollHeight;
 }
 </script>

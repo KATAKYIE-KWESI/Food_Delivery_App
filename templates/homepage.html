@@ -341,8 +341,8 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
 </script>
 
 
-<!-- Include Auth Modal JavaScript -->
 <script>
+<!-- Include Auth Modal JavaScript -->
 // Auth Modal JavaScript (only opens when clicked, no auto-popup)
 (function() {
     const authModal = document.getElementById('authModal');
@@ -354,7 +354,6 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
     const loginFormSubmit = document.getElementById('loginFormSubmit');
     const signupFormSubmit = document.getElementById('signupFormSubmit');
     const openAuthModalBtn = document.getElementById('openAuthModal');
-
 
     // Get CSRF token
     function getCookie(name) {
@@ -378,7 +377,6 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
     if (openAuthModalBtn) {
         openAuthModalBtn.addEventListener('click', () => {
             authModal.classList.add('active');
-            // Reset to login form
             signupForm.classList.remove('active');
             loginForm.classList.add('active');
         });
@@ -387,21 +385,22 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
     // Close modal
     closeModal.addEventListener('click', () => {
         authModal.classList.remove('active');
+        document.body.classList.remove('modal-open');
     });
 
     // Close modal on overlay click
     authModal.querySelector('.auth-modal-overlay').addEventListener('click', () => {
         authModal.classList.remove('active');
+        document.body.classList.remove('modal-open');
     });
 
-    // Switch to signup form
+    // Switch forms
     showSignup.addEventListener('click', (e) => {
         e.preventDefault();
         loginForm.classList.remove('active');
         signupForm.classList.add('active');
     });
 
-    // Switch to login form
     showLogin.addEventListener('click', (e) => {
         e.preventDefault();
         signupForm.classList.remove('active');
@@ -412,32 +411,68 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
     function showMessage(form, message, isError = false) {
         const existingMsg = form.querySelector('.auth-message');
         if (existingMsg) existingMsg.remove();
-
         const messageDiv = document.createElement('div');
         messageDiv.className = `auth-message ${isError ? 'error' : 'success'}`;
         messageDiv.textContent = message;
         form.insertBefore(messageDiv, form.firstChild);
-
         if (!isError) {
-            setTimeout(() => {
-                messageDiv.remove();
-            }, 3000);
+            setTimeout(() => { messageDiv.remove(); }, 3000);
         }
     }
 
     // Handle login form submission
     loginFormSubmit.addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const username = document.getElementById('loginUsername').value;
         const password = document.getElementById('loginPassword').value;
         const submitBtn = loginFormSubmit.querySelector('.auth-btn');
 
+        submitBtn.classList.add('loading');
+        try {
+            const response = await fetch('/login/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showMessage(loginForm, data.message, false);
+                setTimeout(() => { location.reload(); }, 1500);
+            } else {
+                showMessage(loginForm, data.error, true);
+            }
+        } catch (error) {
+            showMessage(loginForm, 'An error occurred.', true);
+        } finally {
+            submitBtn.classList.remove('loading');
+        }
+    });
+
+    // --- UPDATED SIGNUP LOGIC (NOW INCLUDES PHONE) ---
+    signupFormSubmit.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('signupUsername').value;
+        const email = document.getElementById('signupEmail').value;
+        const phone = document.getElementById('signupPhone').value; // COLLECTED PHONE
+        const password = document.getElementById('signupPassword').value;
+        const confirmPassword = document.getElementById('signupConfirmPassword').value;
+        const submitBtn = signupFormSubmit.querySelector('.auth-btn');
+
+        if (password !== confirmPassword) {
+            showMessage(signupForm, 'Passwords do not match!', true);
+            return;
+        }
+
+        if (password.length < 6) {
+            showMessage(signupForm, 'Password must be at least 6 characters!', true);
+            return;
+        }
 
         submitBtn.classList.add('loading');
 
         try {
-            const response = await fetch('/login/', {
+            const response = await fetch('/signup/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -445,87 +480,29 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
                 },
                 body: JSON.stringify({
                     username: username,
-                    password: password,
-
+                    email: email,
+                    phone: phone, // SENDING PHONE TO DJANGO
+                    password: password
                 })
             });
 
             const data = await response.json();
 
             if (data.success) {
-                showMessage(loginForm, data.message, false);
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
+                showMessage(signupForm, data.message || "Welcome!", false);
+                setTimeout(() => { location.reload(); }, 1500);
             } else {
-                showMessage(loginForm, data.error, true);
+                showMessage(signupForm, data.error, true);
             }
         } catch (error) {
-            showMessage(loginForm, 'An error occurred. Please try again.', true);
+            showMessage(signupForm, 'An error occurred. Please try again.', true);
         } finally {
             submitBtn.classList.remove('loading');
         }
     });
-
-    signupFormSubmit.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const username = document.getElementById('signupUsername').value;
-    const email = document.getElementById('signupEmail').value;
-    const password = document.getElementById('signupPassword').value;
-    const confirmPassword = document.getElementById('signupConfirmPassword').value;
-    const submitBtn = signupFormSubmit.querySelector('.auth-btn');
-
-
-
-    if (password !== confirmPassword) {
-        showMessage(signupForm, 'Passwords do not match!', true);
-        return;
-    }
-
-    if (password.length < 6) {
-        showMessage(signupForm, 'Password must be at least 6 characters!', true);
-        return;
-    }
-
-    submitBtn.classList.add('loading');
-
-    try {
-        const response = await fetch('/signup/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrftoken
-            },
-            body: JSON.stringify({
-                username: username,
-                email: email,
-                password: password,
-
-
-
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showMessage(signupForm, data.message, false);
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showMessage(signupForm, data.error, true);
-        }
-    } catch (error) {
-        showMessage(signupForm, 'An error occurred. Please try again.', true);
-    } finally {
-        submitBtn.classList.remove('loading');
-    }
-});
 })();
 
-  // Professional Scroll Reveal Animation System for JollyFoods
+// Professional Scroll Reveal Animation System
 (function() {
     class ScrollRevealSystem {
         constructor() {
@@ -537,48 +514,30 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
         }
 
         init() {
-            // Register elements to animate
             this.registerElement('.explore-menu');
             this.registerElement('.explore-menu-list');
             this.registerElement('.food-display');
-
-            // Register all category sections and their food lists
             document.querySelectorAll('.category-section').forEach(section => {
                 this.registerElement(section);
                 const foodList = section.querySelector('.food-display-list');
-                if (foodList) {
-                    this.registerElement(foodList);
-                }
+                if (foodList) this.registerElement(foodList);
             });
-
             this.registerElement('.footer');
 
-            // Event listeners
             window.addEventListener('scroll', () => this.requestTick());
             window.addEventListener('resize', () => {
                 this.windowHeight = window.innerHeight;
                 this.requestTick();
             });
-
-            // Initial check
             this.check();
-
-            // Navbar hide/show on scroll
             this.initNavbarScroll();
-
-            // Parallax effect
             this.initParallax();
         }
 
         registerElement(selector) {
-            const elements = typeof selector === 'string'
-                ? document.querySelectorAll(selector)
-                : [selector];
-
+            const elements = typeof selector === 'string' ? document.querySelectorAll(selector) : [selector];
             elements.forEach(el => {
-                if (el && !this.elements.has(el)) {
-                    this.elements.set(el, { revealed: false });
-                }
+                if (el && !this.elements.has(el)) this.elements.set(el, { revealed: false });
             });
         }
 
@@ -593,25 +552,13 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
         }
 
         check() {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
             this.elements.forEach((data, element) => {
                 const rect = element.getBoundingClientRect();
-                const elementTop = rect.top;
-                const elementBottom = rect.bottom;
-
-                // Element is in viewport (with 20% buffer)
-                const inView = elementTop < this.windowHeight * 0.8 && elementBottom > this.windowHeight * 0.2;
-
+                const inView = rect.top < this.windowHeight * 0.8 && rect.bottom > this.windowHeight * 0.2;
                 if (inView) {
-                    if (!element.classList.contains('revealed')) {
-                        element.classList.add('revealed');
-                    }
+                    element.classList.add('revealed');
                 } else {
-                    // Remove revealed class when out of view to replay animation
-                    if (element.classList.contains('revealed')) {
-                        element.classList.remove('revealed');
-                    }
+                    element.classList.remove('revealed');
                 }
             });
         }
@@ -619,52 +566,27 @@ document.querySelector('.newsletter-form').addEventListener('submit', (e) => {
         initNavbarScroll() {
             const navbar = document.querySelector('.navbar');
             if (!navbar) return;
-
             window.addEventListener('scroll', () => {
                 const currentScroll = window.pageYOffset;
-
-                if (currentScroll > this.lastScroll && currentScroll > 150) {
-                    navbar.style.transform = 'translateY(-100%)';
-                } else {
-                    navbar.style.transform = 'translateY(0)';
-                }
-
+                navbar.style.transform = (currentScroll > this.lastScroll && currentScroll > 150) ? 'translateY(-100%)' : 'translateY(0)';
                 this.lastScroll = currentScroll;
             });
         }
 
         initParallax() {
             const parallaxElements = document.querySelectorAll('.food-item img, .explore-menu-list-item img');
-            let rafId = null;
-
-            const updateParallax = () => {
+            window.addEventListener('scroll', () => {
                 parallaxElements.forEach(el => {
                     const rect = el.getBoundingClientRect();
-
                     if (rect.top < this.windowHeight && rect.bottom > 0) {
                         const rate = (rect.top - this.windowHeight / 2) * 0.03;
                         el.style.transform = `translateY(${rate}px)`;
                     }
                 });
-                rafId = null;
-            };
-
-            window.addEventListener('scroll', () => {
-                if (!rafId) {
-                    rafId = requestAnimationFrame(updateParallax);
-                }
             });
         }
     }
-
-    // Initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            new ScrollRevealSystem();
-        });
-    } else {
-        new ScrollRevealSystem();
-    }
+    new ScrollRevealSystem();
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -673,60 +595,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const openAuthModalMenu = document.getElementById('openAuthModalMenu');
     const authModal = document.getElementById('authModal');
 
-    // Toggle Hamburger
     if (menuToggle) {
         menuToggle.addEventListener('click', () => {
             navbarMenu.classList.toggle('active');
         });
     }
 
-    // Open Modal and Blur Navbar
     if (openAuthModalMenu) {
         openAuthModalMenu.addEventListener('click', (e) => {
             e.preventDefault();
             authModal.classList.add('active');
             navbarMenu.classList.remove('active');
-
-            // Add this line to blur the background/navbar
             document.body.classList.add('modal-open');
         });
     }
 
-    // Close Modal and Remove Blur
-    // Assuming you have a close button or click-outside logic
     window.addEventListener('click', (e) => {
         if (e.target === authModal) {
             authModal.classList.remove('active');
-            document.body.classList.remove('modal-open'); // Remove blur
+            document.body.classList.remove('modal-open');
         }
     });
-});
 
-
-<!--Allows the swipe for more to disappear once the user starts scrolling-->
-document.addEventListener('DOMContentLoaded', () => {
-    // Select all scrollable food lists
+    // Swipe hint logic
     const foodLists = document.querySelectorAll('.food-display-list');
-
     foodLists.forEach(list => {
         list.addEventListener('scroll', function() {
-            // Find the indicator within the SAME category section
             const section = this.closest('.category-section');
             const indicator = section ? section.querySelector('.swipe-indicator') : null;
-
-            // If user scrolled more than 30px, fade out the hint
             if (indicator && this.scrollLeft > 30) {
                 indicator.style.opacity = '0';
                 indicator.style.pointerEvents = 'none';
-                // Optional: remove from layout after fade
-                setTimeout(() => {
-                    indicator.style.visibility = 'hidden';
-                }, 500);
+                setTimeout(() => { indicator.style.visibility = 'hidden'; }, 500);
             }
         }, { passive: true });
     });
 });
-
 </script>
 
 <script>

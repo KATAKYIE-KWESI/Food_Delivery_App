@@ -2,6 +2,8 @@ import random
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class CartItem(models.Model):
@@ -114,3 +116,18 @@ class Delivery(models.Model):
             # Generates a random 6-digit number like '482931'
             self.token = str(random.randint(100000, 999999))
         super().save(*args, **kwargs)
+
+
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Automatically create a Profile when a User is created."""
+    if created:
+        Profile.objects.get_or_create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    """Ensure the Profile is saved when the User is saved."""
+    # This prevents errors if a profile somehow wasn't created
+    if hasattr(instance, 'profile'):
+        instance.profile.save()

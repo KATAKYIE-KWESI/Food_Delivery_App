@@ -19,6 +19,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+
 #Calculates total price of items in the cart
 def calculate_cart_totals(cart_items):
     subtotal = sum(item.food_price * item.quantity for item in cart_items)
@@ -224,7 +225,6 @@ def get_cart_count(request):
     return JsonResponse({'cart_count': count})
 
 
-
 @require_POST
 def signup_view(request):
     try:
@@ -232,40 +232,39 @@ def signup_view(request):
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
+        phone = data.get('phone')  # NEW: Captured from frontend
 
-        if not username or not email or not password :
+        # 1. Basic Validation
+        if not all([username, email, password, phone]):
             return JsonResponse({'success': False, 'error': 'All fields are required'})
 
         if len(password) < 6:
             return JsonResponse({'success': False, 'error': 'Password must be at least 6 characters'})
 
-        pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+$'
-        if not re.match(pattern, password):
-             return JsonResponse({
-                    'success': False,
-                    'error': 'Password must contain at least a character, a number and a symbol'
-             })
-
+        # 2. Check for existing users
         if User.objects.filter(username=username).exists():
             return JsonResponse({'success': False, 'error': 'Username already exists'})
+
         if User.objects.filter(email=email).exists():
             return JsonResponse({'success': False, 'error': 'Email already registered'})
 
+        # 3. Create User and update Profile
         user = User.objects.create_user(username=username, email=email, password=password)
-        profile, _ = Profile.objects.get_or_create(user=user)
 
+        # Profile is usually created automatically by signals, but we update it here
+        profile, _ = Profile.objects.get_or_create(user=user)
+        profile.phone_number = phone
         profile.save()
 
-        login(request, user)
+        # 4. Log the user in
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
+        # 5. Migrate Guest Cart to the new User account
         session_key = request.session.session_key
         if session_key:
             CartItem.objects.filter(session_key=session_key).update(user=user, session_key=None)
 
-
-
-
-        return JsonResponse({'success': True, 'message': 'Account created successfully! .'})
+        return JsonResponse({'success': True, 'message': 'Account created successfully!'})
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
@@ -284,7 +283,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            login(request, user)
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             session_key = request.session.session_key
             if session_key:
                 CartItem.objects.filter(session_key=session_key).update(user=user, session_key=None)
@@ -311,77 +310,221 @@ def logout_view(request):
 def terms(request):
     return render(request, 'terms.html')
 
+
+import json
+import traceback
 from django.http import JsonResponse
 from django.conf import settings
 from groq import Groq
-import traceback
+from .models import CartItem  # Ensure this import exists
 
 # Initialize Groq client once
 client = Groq(api_key=settings.GROQ_API_KEY)
 
+# 1. Define the Tools outside the view
+# --- UPDATED AI TOOLS ---
+AI_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "add_item_to_cart",
+            "description": "Adds a food item to the cart automatically.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "item_name": {"type": "string", "description": "The exact name of the food"},
+                    "quantity": {"type": "integer", "default": 1}
+                },
+                "required": ["item_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "save_user_contact",
+            "description": "Saves the user's phone number and delivery landmark.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "phone": {"type": "string", "description": "The customer's phone number"},
+                    "landmark": {"type": "string", "description": "A nearby landmark for delivery"}
+                },
+                "required": ["phone"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "trigger_checkout",
+            "description": "Call this when the user says they want to pay, checkout, or finish the order."
+        }
+    }
+]
+
+
+# --- UPDATED AI CHATBOT VIEW ---
 def ai_chatbot(request):
     user_message = request.GET.get("message", "").strip().lower()
 
-    # If no message, return greeting
     if not user_message:
         return JsonResponse({"reply": "Akwaaba! 👋 I'm JollyBot! How can I help? 😊"})
 
-    # Check for order-related keywords
-    order_words = ['order', 'buy', 'checkout', 'pay', 'delivery', 'deliver', 'purchase']
-    if any(word in user_message for word in order_words):
-        return JsonResponse({
-            "reply": "Perfect! 🛒 To place your order:\n1. Browse our Menu\n2. Add items to Cart\n3. Go to Checkout\n\nClick the Menu button above to get started! 😊"
-        })
+    # 1. Determine the correct cart items for context (Auth or Session)
+    if request.user.is_authenticated:
+        cart_items = CartItem.objects.filter(user=request.user)
+    else:
+        session_key = request.session.session_key
+        cart_items = CartItem.objects.filter(session_key=session_key) if session_key else []
 
-    # AI rules
-    rules = """
-You're JollyBot, friendly AI for JollyFoods! 🍽️
-Be warm, use emojis 😊 Chat about anything.
+    cart_desc = ", ".join([f"{i.quantity}x {i.food_name}" for i in cart_items])
 
-MENU (ONLY THESE):
-- Garden Salad: GHS 12
-- Caesar Salad: GHS 14  
-- Jollof Rice: GHS 15
-- Pasta: GHS 15
-- Grilled Chicken: GHS 18
-- Fried Rice: GHS 13
-- Soda: GHS 2
-- Juice: GHS 5
+    # 2. BETTER CONTACT CHECK: Check session AND actual User Profile
+    user_phone = request.session.get('temp_phone')
+    user_landmark = request.session.get('temp_landmark')
 
-🚫 NO DISCOUNTS
-🚫 If NOT on menu, say we don't have it
+    if request.user.is_authenticated:
+        profile, _ = Profile.objects.get_or_create(user=request.user)
+        if profile.phone_number:
+            user_phone = profile.phone_number
+        # Also check if any cart item already has a landmark
+        first_cart = cart_items.first()
+        if first_cart and first_cart.address_text:
+            user_landmark = first_cart.address_text
 
-When customers ask about ordering, tell them to browse the menu and add to cart.
-"""
+    has_contact = user_phone is not None and user_phone != ""
+
+    # 3. Dynamic System Rules (Tells the AI exactly what we already know)
+    rules = f"""
+    You're JollyBot, friendly AI for JollyFoods! 🍽️
+    Be warm, use emojis 😊 
+
+    CURRENT CART: {cart_desc if cart_desc else 'Empty'}.
+    CONTACT SAVED: {"Yes (" + str(user_phone) + ")" if has_contact else "No"}.
+    LANDMARK SAVED: {user_landmark if user_landmark else "None"}.
+
+    MENU:
+    - Garden Salad: GHS 12
+    - Greek Salad: GHS 12
+    - Veg Salad: GHS 18
+    - Jollof Rice: GHS 15
+    - Pasta: GHS 15
+    - Grilled Chicken: GHS 18
+    - Fried Rice: GHS 13
+    - Soda: GHS 2
+    - Juice: GHS 5
+
+    AUTOMATION RULES:
+    1. If user wants food, call 'add_item_to_cart'.
+    2. If user wants to pay/checkout:
+       - If 'CONTACT SAVED' is No, YOU MUST ASK for their phone number and landmark. Do NOT call trigger_checkout yet.
+       - Once they provide them, call 'save_user_contact'.
+       - Only if 'CONTACT SAVED' is Yes, call 'trigger_checkout'.
+    3. If NOT on menu, say we don't have it.
+    """
 
     try:
-        # Use a valid Groq model
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": rules},
                 {"role": "user", "content": user_message}
-            ]
+            ],
+            tools=AI_TOOLS,
+            tool_choice="auto"
         )
 
-        # Extract reply
-        reply = response.choices[0].message.content
-        return JsonResponse({"reply": reply})
+        resp_msg = response.choices[0].message
+
+        if resp_msg.tool_calls:
+            tool_call = resp_msg.tool_calls[0]
+            func_name = tool_call.function.name
+            args = json.loads(tool_call.function.arguments)
+
+            # --- HANDLE: ADD TO CART ---
+            if func_name == "add_item_to_cart":
+                prices = {
+                    "garden salad": 12, "greek salad": 12, "veg salad": 18,
+                    "jollof rice": 15, "pasta": 15, "grilled chicken": 18,
+                    "fried rice": 13, "soda": 2, "juice": 5
+                }
+                food_name = args.get("item_name", "").lower()
+
+                if food_name in prices:
+                    # Fix: Ensure session exists for guest
+                    if not request.user.is_authenticated and not request.session.session_key:
+                        request.session.create()
+
+                    session_key = request.session.session_key
+
+                    CartItem.objects.create(
+                        user=request.user if request.user.is_authenticated else None,
+                        session_key=None if request.user.is_authenticated else session_key,
+                        food_name=food_name.title(),
+                        food_price=prices[food_name],
+                        quantity=args.get("quantity", 1)
+                    )
+                    return JsonResponse({
+                        "reply": f"Done! I've added {food_name.title()} to your cart. 🛒 Ready to checkout?",
+                        "action": "refresh_ui"
+                    })
+                else:
+                    return JsonResponse({"reply": f"Sorry, we don't have {food_name} on our menu today! 😅"})
+
+            # --- HANDLE: SAVE CONTACT ---
+            if func_name == "save_user_contact":
+                phone = args.get("phone")
+                landmark = args.get("landmark", "No landmark provided")
+
+                # Store in session
+                request.session['temp_phone'] = phone
+                request.session['temp_landmark'] = landmark
+                request.session.modified = True
+
+                # If logged in, update their profile permanently
+                if request.user.is_authenticated:
+                    prof, _ = Profile.objects.get_or_create(user=request.user)
+                    prof.phone_number = phone
+                    prof.save()
+                    CartItem.objects.filter(user=request.user).update(address_text=landmark)
+                else:
+                    CartItem.objects.filter(session_key=request.session.session_key).update(address_text=landmark)
+
+                return JsonResponse({
+                    "reply": f"Got it! Phone: {phone} and Landmark: {landmark}. We are ready for payment! 💳",
+                    "action": "refresh_ui"
+                })
+
+            # --- HANDLE: TRIGGER CHECKOUT ---
+            if func_name == "trigger_checkout":
+                first_item = cart_items.first()
+
+                # 1. Check for GPS (Crucial)
+                if not first_item or not first_item.lat or first_item.lat == 0:
+                    return JsonResponse({
+                        "reply": "I'm ready! 📍 But first, I need your location so the rider can find you. I'm requesting it now...",
+                        "action": "request_gps"
+                    })
+
+                # 2. Final Check for Phone (Redundancy check)
+                if not has_contact:
+                    return JsonResponse(
+                        {"reply": "Wait! I still need your phone number for the delivery rider before we can pay. 📞"})
+
+                return JsonResponse({
+                    "reply": "Everything is set! Redirecting you to the secure payment page... 💳",
+                    "action": "redirect",
+                    "url": "/payment/"
+                })
+
+        # Default text response if no tool was called
+        return JsonResponse({"reply": resp_msg.content})
 
     except Exception as e:
-        # Print full traceback for debugging
         print("❌ Groq API ERROR:")
         traceback.print_exc()
-
-        # Handle specific common issues
-        error_message = str(e)
-        if "Connection" in error_message or "timeout" in error_message:
-            user_reply = "Hmm 😅 I'm having trouble connecting to the AI service. Please try again in a moment."
-        else:
-            user_reply = "Oops! Something went wrong. Try again? 😅"
-
-        return JsonResponse({"reply": user_reply}, status=500)
-
+        return JsonResponse({"reply": "Oops! My brain stalled. Try again? 😅"}, status=500)
 
 # Geolocation view
 def update_cart_location(request):
@@ -681,13 +824,31 @@ def check_delivery_status(request, delivery_id):
         return JsonResponse({'error': 'Not found'}, status=404)
 
 
-
 # --- CUSTOMER VIEW ---
 def track_order(request, delivery_id):
+    # 1. Fetch the delivery
     delivery = get_object_or_404(Delivery, id=delivery_id)
-    # The 'driver' object is accessible via delivery.driver
-    return render(request, 'track_order.html', {'delivery': delivery})
 
+    # 2. Security Check (Optional but Recommended)
+    # Allows viewing if: User owns the order OR has the delivery token in their session
+    is_owner = False
+    if request.user.is_authenticated and delivery.customer == request.user:
+        is_owner = True
+    elif request.session.get('delivery_token') == delivery.token:
+        is_owner = True
+
+    # 3. Context Data
+    # We pass 'delivery' which contains:
+    # - delivery.status (new, picked, delivered)
+    # - delivery.driver.user.username (Rider Name)
+    # - delivery.driver.phone_number (Rider Phone)
+    # - delivery.phone_number (Customer Phone)
+
+    return render(request, 'track_order.html', {
+        'delivery': delivery,
+        'is_owner': is_owner,
+        'google_maps_api_key': settings.GOOGLE_MAPS_API_KEY  # If you show a map
+    })
 
 # --- DRIVER REPORT VIEW ---
 @login_required

@@ -94,9 +94,11 @@
     </div>
 </div>
 
+
+
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
-    // Payment method selection UI
+    // 1. Payment method selection UI (Preserving your original logic)
     document.querySelectorAll('.payment-method').forEach(method => {
         method.addEventListener('click', function() {
             document.querySelectorAll('.payment-method').forEach(m => m.classList.remove('active'));
@@ -104,6 +106,7 @@
         });
     });
 
+    // 2. CSRF Token Utility (Preserving your original logic)
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -120,39 +123,59 @@
     }
     const csrftoken = getCookie('csrftoken');
 
-  function payWithPaystack() {
-    let handler = PaystackPop.setup({
-        key: '{{ paystack_public_key }}',
-        email: '{{ request.user.email|default:"customer@jollyfoods.com" }}',
-        amount: {{ paystack_amount }},
-        currency: 'GHS',
-        ref: 'JF_' + Math.floor((Math.random() * 1000000000) + 1),
-        callback: function(response) {
-            // When payment is successful:
-            fetch("{% url 'payment' %}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify({
-                    reference: response.reference,
-                    // We don't need to send phone/landmark here because
-                    // they are already stored in the session or cart items!
+    // 3. Main Paystack Function (Updated with Metadata for Phone)
+    function payWithPaystack() {
+        let handler = PaystackPop.setup({
+            key: '{{ paystack_public_key }}',
+            email: '{{ request.user.email|default:"customer@jollyfoods.com" }}',
+            amount: {{ paystack_amount }},
+            currency: 'GHS',
+            ref: 'JF_' + Math.floor((Math.random() * 1000000000) + 1),
+
+            // Adding Metadata ensures the phone number is tied to the Paystack transaction
+            metadata: {
+                custom_fields: [
+                    {
+                        display_name: "Phone Number",
+                        variable_name: "phone_number",
+                        value: "{{ request.user.profile.phone_number|default:'' }}"
+                    }
+                ]
+            },
+
+            callback: function(response) {
+                // When payment is successful, ping the Django view
+                fetch("{% url 'payment' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                    },
+                    body: JSON.stringify({
+                        reference: response.reference
+                        // Note: Python's payment view handles phone/landmark via Session/Profile
+                    })
                 })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if(data.success) {
-                    window.location.href = "{% url 'cart' %}";
-                } else {
-                    alert("Order processing failed: " + data.error);
-                }
-            });
-        }
-    });
-    handler.openIframe();
-}
+                .then(res => res.json())
+                .then(data => {
+                    if(data.success) {
+                        // Redirect to the success state in cart
+                        window.location.href = "{% url 'cart' %}";
+                    } else {
+                        alert("Order processing failed: " + data.error);
+                    }
+                })
+                .catch(err => {
+                    console.error("Fetch Error:", err);
+                    alert("A network error occurred. Please contact support.");
+                });
+            },
+            onClose: function() {
+                alert('Transaction cancelled.');
+            }
+        });
+        handler.openIframe();
+    }
 </script>
 </body>
 </html>

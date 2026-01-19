@@ -1,37 +1,40 @@
 from django.urls import path
 from . import views
-from .views import accept_delivery, decline_delivery
 
 urlpatterns = [
+    # Core Pages
     path('', views.homepage, name='homepage'),
     path('menu/', views.menu, name='menu'),
     path('contact/', views.contact, name='contact'),
     path('mobile/', views.mobile, name='mobile'),
+    path('terms/', views.terms, name='terms'),
 
-    # New stuff
-    path('payment/', views.payment, name='payment'),
+    # Cart & Checkout
     path('cart/', views.cart, name='cart'),
     path('cart/add/', views.add_to_cart, name='add_to_cart'),
     path('cart/update/', views.update_cart_item, name='update_cart_item'),
     path('cart/remove/', views.remove_from_cart, name='remove_from_cart'),
-    path('cart/count/', views.get_cart_count, name='get_cart_count'),
+    path('cart/save-delivery-details/', views.save_delivery_details, name='save_delivery_details'),
+    path('update-cart-location/', views.update_cart_location, name='update_cart_location'),
+
+    # Payment & Order Processing
+    path('payment/', views.payment, name='payment'),
+    path('track-order/<int:delivery_id>/', views.track_order, name='track_order'),
+    path('check-delivery-status/<int:delivery_id>/', views.check_delivery_status, name='check_status'),
+
+    # Authentication
     path('signup/', views.signup_view, name='signup'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
-    path('terms/', views.terms, name='terms'),
+
+    # AI Chatbot
     path('ai-chat/', views.ai_chatbot, name='ai_chatbot'),
-    path('update-cart-location/', views.update_cart_location, name='update_cart_location'),
+
+    # Driver Features
     path("driver/dashboard/", views.driver_dashboard, name="driver_dashboard"),
-    path('cart/save-delivery-details/', views.save_delivery_details, name='save_delivery_details'),
-    path('checkout/', views.checkout_view, name='checkout'),
-    path("driver/accept-delivery/<int:delivery_id>/", accept_delivery),
-    path("driver/decline-delivery/<int:delivery_id>/", decline_delivery),
-    path('verify-token/<int:delivery_id>/', views.verify_delivery_token, name='verify_token'),
-    path('check-new-jobs/', views.check_new_jobs, name='check_new_jobs'),
-    path('check-delivery-status/<int:delivery_id>/', views.check_delivery_status, name='check_status'),
-    path('track-order/<int:delivery_id>/', views.track_order, name='track_order'),
+    path("driver/accept-delivery/<int:delivery_id>/", views.accept_delivery, name="accept_delivery"),
+    path("driver/decline-delivery/<int:delivery_id>/", views.decline_delivery, name="decline_delivery"),
+    path('driver/verify-token/<int:delivery_id>/', views.verify_delivery_token, name='verify_token'),
     path('driver/reports/', views.driver_reports, name='driver_reports'),
-
-
-
+    path('check-new-jobs/', views.check_new_jobs, name='check_new_jobs'),
 ]
