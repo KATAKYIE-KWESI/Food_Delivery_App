@@ -256,10 +256,14 @@ def signup_view(request):
         profile.phone_number = phone
         profile.save()
 
-        # 4. Log the user in
+        # 4. Save phone to session so chatbot knows immediately
+        request.session['temp_phone'] = phone
+        request.session.modified = True
+
+        # 5. Log the user in
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
-        # 5. Migrate Guest Cart to the new User account
+        # 6. Migrate Guest Cart to the new User account
         session_key = request.session.session_key
         if session_key:
             CartItem.objects.filter(session_key=session_key).update(user=user, session_key=None)
@@ -364,45 +368,64 @@ AI_TOOLS = [
 ]
 
 
-# --- UPDATED AI CHATBOT VIEW ---
+# ---  AI CHATBOT VIEW ---
 def ai_chatbot(request):
     user_message = request.GET.get("message", "").strip().lower()
 
     if not user_message:
         return JsonResponse({"reply": "Akwaaba! 👋 I'm JollyBot! How can I help? 😊"})
 
-    # 1. Determine the correct cart items for context (Auth or Session)
+    # Determine cart items for context
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
     else:
         session_key = request.session.session_key
         cart_items = CartItem.objects.filter(session_key=session_key) if session_key else []
 
-    cart_desc = ", ".join([f"{i.quantity}x {i.food_name}" for i in cart_items])
+    cart_desc = ", ".join([f"{i.quantity}x {i.food_name}" for i in cart_items]) or "Empty"
 
-    # 2. BETTER CONTACT CHECK: Check session AND actual User Profile
-    user_phone = request.session.get('temp_phone')
-    user_landmark = request.session.get('temp_landmark')
+    # --- CONTACT & LANDMARK RESOLUTION ---
+    user_phone = None
+    user_landmark = None
 
+    # 1. AUTHENTICATED USER → PROFILE FIRST
     if request.user.is_authenticated:
         profile, _ = Profile.objects.get_or_create(user=request.user)
-        if profile.phone_number:
-            user_phone = profile.phone_number
-        # Also check if any cart item already has a landmark
+        if profile.phone_number and profile.phone_number.strip():
+            user_phone = profile.phone_number.strip()
+            request.session['temp_phone'] = user_phone  # ONLY save if exists
+            request.session.modified = True
+
         first_cart = cart_items.first()
-        if first_cart and first_cart.address_text:
-            user_landmark = first_cart.address_text
+        if first_cart and first_cart.address_text and first_cart.address_text.strip():
+            user_landmark = first_cart.address_text.strip()
+            request.session['temp_landmark'] = user_landmark
+            request.session.modified = True
 
-    has_contact = user_phone is not None and user_phone != ""
+    # 2. GUEST USER → FALL BACK TO SESSION
+    else:
+        user_phone = request.session.get('temp_phone')
+        user_landmark = request.session.get('temp_landmark')
 
-    # 3. Dynamic System Rules (Tells the AI exactly what we already know)
+    # 3. FINAL FALLBACK
+    if not user_phone:
+        user_phone = "unknown"
+    if not user_landmark:
+        user_landmark = "unknown"
+
+    has_contact = user_phone != "unknown"
+
+    # --- SYSTEM RULES FOR AI ---
     rules = f"""
-    You're JollyBot, friendly AI for JollyFoods! 🍽️
-    Be warm, use emojis 😊 
+    You are JollyBot 🍽️, a food-ordering assistant.
 
-    CURRENT CART: {cart_desc if cart_desc else 'Empty'}.
-    CONTACT SAVED: {"Yes (" + str(user_phone) + ")" if has_contact else "No"}.
-    LANDMARK SAVED: {user_landmark if user_landmark else "None"}.
+    ⚠️ CRITICAL RULE:
+    - If CONTACT SAVED is Yes, NEVER ask for phone again.
+
+    CURRENT CART: {cart_desc}
+    CONTACT SAVED: {"Yes" if has_contact else "No"}
+    PHONE NUMBER: {user_phone}
+    LANDMARK: {user_landmark}
 
     MENU:
     - Garden Salad: GHS 12
@@ -416,12 +439,11 @@ def ai_chatbot(request):
     - Juice: GHS 5
 
     AUTOMATION RULES:
-    1. If user wants food, call 'add_item_to_cart'.
-    2. If user wants to pay/checkout:
-       - If 'CONTACT SAVED' is No, YOU MUST ASK for their phone number and landmark. Do NOT call trigger_checkout yet.
-       - Once they provide them, call 'save_user_contact'.
-       - Only if 'CONTACT SAVED' is Yes, call 'trigger_checkout'.
-    3. If NOT on menu, say we don't have it.
+    1. If user wants food → call add_item_to_cart.
+    2. If user wants to checkout:
+       - If CONTACT SAVED is No → ask for phone & landmark.
+       - If CONTACT SAVED is Yes → IMMEDIATELY call trigger_checkout.
+    3. NEVER ask for phone if CONTACT SAVED is Yes.
     """
 
     try:
@@ -442,7 +464,7 @@ def ai_chatbot(request):
             func_name = tool_call.function.name
             args = json.loads(tool_call.function.arguments)
 
-            # --- HANDLE: ADD TO CART ---
+            # --- ADD TO CART ---
             if func_name == "add_item_to_cart":
                 prices = {
                     "garden salad": 12, "greek salad": 12, "veg salad": 18,
@@ -450,12 +472,9 @@ def ai_chatbot(request):
                     "fried rice": 13, "soda": 2, "juice": 5
                 }
                 food_name = args.get("item_name", "").lower()
-
                 if food_name in prices:
-                    # Fix: Ensure session exists for guest
                     if not request.user.is_authenticated and not request.session.session_key:
                         request.session.create()
-
                     session_key = request.session.session_key
 
                     CartItem.objects.create(
@@ -470,19 +489,17 @@ def ai_chatbot(request):
                         "action": "refresh_ui"
                     })
                 else:
-                    return JsonResponse({"reply": f"Sorry, we don't have {food_name} on our menu today! 😅"})
+                    return JsonResponse({"reply": f"Sorry, we don't have {food_name} today! 😅"})
 
-            # --- HANDLE: SAVE CONTACT ---
+            # --- SAVE USER CONTACT ---
             if func_name == "save_user_contact":
                 phone = args.get("phone")
                 landmark = args.get("landmark", "No landmark provided")
 
-                # Store in session
                 request.session['temp_phone'] = phone
                 request.session['temp_landmark'] = landmark
                 request.session.modified = True
 
-                # If logged in, update their profile permanently
                 if request.user.is_authenticated:
                     prof, _ = Profile.objects.get_or_create(user=request.user)
                     prof.phone_number = phone
@@ -496,21 +513,19 @@ def ai_chatbot(request):
                     "action": "refresh_ui"
                 })
 
-            # --- HANDLE: TRIGGER CHECKOUT ---
+            # --- TRIGGER CHECKOUT ---
             if func_name == "trigger_checkout":
                 first_item = cart_items.first()
-
-                # 1. Check for GPS (Crucial)
                 if not first_item or not first_item.lat or first_item.lat == 0:
                     return JsonResponse({
                         "reply": "I'm ready! 📍 But first, I need your location so the rider can find you. I'm requesting it now...",
                         "action": "request_gps"
                     })
 
-                # 2. Final Check for Phone (Redundancy check)
                 if not has_contact:
-                    return JsonResponse(
-                        {"reply": "Wait! I still need your phone number for the delivery rider before we can pay. 📞"})
+                    return JsonResponse({
+                        "reply": "Wait! I still need your phone number for the delivery rider before we can pay. 📞"
+                    })
 
                 return JsonResponse({
                     "reply": "Everything is set! Redirecting you to the secure payment page... 💳",
@@ -518,13 +533,14 @@ def ai_chatbot(request):
                     "url": "/payment/"
                 })
 
-        # Default text response if no tool was called
+        # Default text response
         return JsonResponse({"reply": resp_msg.content})
 
     except Exception as e:
         print("❌ Groq API ERROR:")
         traceback.print_exc()
         return JsonResponse({"reply": "Oops! My brain stalled. Try again? 😅"}, status=500)
+
 
 # Geolocation view
 def update_cart_location(request):

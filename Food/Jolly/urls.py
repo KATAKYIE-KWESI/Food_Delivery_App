@@ -34,7 +34,7 @@ urlpatterns = [
     path("driver/dashboard/", views.driver_dashboard, name="driver_dashboard"),
     path("driver/accept-delivery/<int:delivery_id>/", views.accept_delivery, name="accept_delivery"),
     path("driver/decline-delivery/<int:delivery_id>/", views.decline_delivery, name="decline_delivery"),
-    path('driver/verify-token/<int:delivery_id>/', views.verify_delivery_token, name='verify_token'),
+    path('verify-token/<int:delivery_id>/', views.verify_delivery_token, name='verify_token'),
     path('driver/reports/', views.driver_reports, name='driver_reports'),
     path('check-new-jobs/', views.check_new_jobs, name='check_new_jobs'),
 ]
