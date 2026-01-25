@@ -27,10 +27,12 @@ CSRF_TRUSTED_ORIGINS = [
 
 ALLOWED_HOSTS =  ['localhost', '127.0.0.1', '172.20.10.13','postarytenoid-panickingly-marline.ngrok-free.dev']
 
+ASGI_APPLICATION = 'Food.asgi.application'
 # --------------------------
 # Installed Apps
 # --------------------------
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -42,7 +44,9 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google'
+    'allauth.socialaccount.providers.google',
+    'channels',
+
 ]
 
 SITE_ID = 1
@@ -195,3 +199,21 @@ LOGIN_REDIRECT_URL = '/'
 
 # Where to send users after they log out
 LOGOUT_REDIRECT_URL = '/'
+
+
+# --------------------------
+# Channels & Real-Time Configuration
+# --------------------------
+
+# Point to your new asgi.py file
+
+
+# 3. Ensure your Channel Layer is configured for Redis
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}

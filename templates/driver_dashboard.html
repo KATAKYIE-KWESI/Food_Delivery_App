@@ -49,7 +49,6 @@
     <main class="main-content">
         <aside class="quick-actions">
             <h3>Menu</h3>
-
             <button class="action-btn" onclick="toggleHistory(event)">
                 <i class="fa-solid fa-clock-rotate-left"></i> History
             </button>
@@ -108,7 +107,6 @@
                 <div class="section-header">
                     <h2><i class="fa-solid fa-truck-fast"></i> New Deliveries</h2>
                 </div>
-
                 <div class="deliveries-container">
                 {% for d in deliveries %}
                 <div class="delivery-card" data-id="{{ d.id }}">
@@ -119,12 +117,10 @@
                     <div class="delivery-body">
                         <h4>{{ d.customer_name }}</h4>
                         <p><i class="fa-solid fa-location-dot"></i> {{ d.landmark|default:"Location provided" }}</p>
-
                         <div style="margin: 10px 0; font-size: 13px; color: #555;">
                             <p><i class="fa-solid fa-phone"></i> {{ d.phone_number }}</p>
                             <p><strong>Order:</strong> {{ d.items_json|truncatechars:50 }}</p>
                         </div>
-
                         <div class="delivery-info">
                             <div class="info-item">
                                 <span class="label">Payment</span>
@@ -145,30 +141,6 @@
                 {% endfor %}
                 </div>
             </section>
-
-
-            <section class="history-section" id="historySection" style="display:none; margin-top:30px;">
-                <div class="section-header">
-                    <h2><i class="fa-solid fa-clock-rotate-left"></i> Delivery History</h2>
-                </div>
-                <div class="deliveries-container">
-                    {% for h in history_jobs %}
-                    <div class="delivery-card" style="border-left: 5px solid #27ae60; opacity: 0.8;">
-                        <div class="delivery-header">
-                            <span class="order-number">#{{ h.id }}</span>
-                            <div class="priority-badge" style="background:#27ae60; color:white;">Completed</div>
-                        </div>
-                        <div class="delivery-body">
-                            <h4>{{ h.customer_name }}</h4>
-                            <p style="font-size: 12px; color: #888;">Items: {{ h.items_json|truncatechars:100 }}</p>
-                            <p style="font-weight: bold; color: #27ae60;">Earned: GHS 5.00</p>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <p class="empty-msg">You haven't completed any deliveries yet.</p>
-                    {% endfor %}
-                </div>
-            </section>
         </div>
     </main>
 
@@ -178,23 +150,21 @@
             <h3 id="modalTitle">Confirm</h3>
             <p id="modalMessage" style="color: #666; margin: 10px 0; font-size: 14px;"></p>
             <div class="modal-btns">
-                <button class="modal-btn" style="background:#eee; flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;" onclick="closeModals()">Cancel</button>
-                <button class="modal-btn" id="modalConfirmBtn" style="color:white; flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;"></button>
+                <button class="modal-btn" style="background:#eee; flex:1; padding:10px; border-radius:8px; border:none;" onclick="closeModals()">Cancel</button>
+                <button class="modal-btn" id="modalConfirmBtn" style="color:white; flex:1; padding:10px; border-radius:8px; border:none;"></button>
             </div>
         </div>
     </div>
 
     <div class="modal-overlay" id="tokenModal">
         <div class="modal-content">
-            <div style="font-size: 40px; color: var(--primary); margin-bottom: 10px;">
-                <i class="fa-solid fa-shield-halved"></i>
-            </div>
+            <div style="font-size: 40px; color: var(--primary); margin-bottom: 10px;"><i class="fa-solid fa-shield-halved"></i></div>
             <h3>Verify Delivery</h3>
             <p style="color: #666; font-size: 13px;">Enter the 6-digit code from the customer.</p>
             <input type="text" id="tokenInput" class="token-input" maxlength="6" placeholder="000000" style="text-align:center; font-size:24px; padding:10px; width:80%; margin:15px 0; letter-spacing:5px;">
             <div class="modal-btns">
-                <button class="modal-btn" style="background:#eee; flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;" onclick="closeModals()">Back</button>
-                <button class="modal-btn" id="verifyTokenBtn" style="background:var(--success); color:white; flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer;">Verify</button>
+                <button class="modal-btn" style="background:#eee; flex:1; padding:10px; border-radius:8px; border:none;" onclick="closeModals()">Back</button>
+                <button class="modal-btn" id="verifyTokenBtn" style="background:var(--success); color:white; flex:1; padding:10px; border-radius:8px; border:none;">Verify</button>
             </div>
         </div>
     </div>
@@ -203,12 +173,30 @@
     const csrftoken = "{{ csrf_token }}";
     let currentId = null;
     let currentAction = null;
+    let trackingSocket = null;
 
     function closeModals() {
         document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
     }
 
-    // 1. Handle Acceptance of New Jobs
+    // WebSocket: Start sending location
+    function startLiveTracking(deliveryId) {
+        console.log("Connecting WebSocket for delivery:", deliveryId);
+        trackingSocket = new WebSocket(`ws://${window.location.host}/ws/tracking/${deliveryId}/`);
+
+        navigator.geolocation.watchPosition((pos) => {
+            const gpsData = {
+                'lat': pos.coords.latitude,
+                'lng': pos.coords.longitude
+            };
+            if (trackingSocket.readyState === WebSocket.OPEN) {
+                trackingSocket.send(JSON.stringify(gpsData));
+                console.log("GPS Sent to Server:", gpsData);
+            }
+        }, err => console.error("GPS Error:", err), { enableHighAccuracy: true });
+    }
+
+    // Modal Handling
     function handleConfirmation(id, action) {
         currentId = id;
         currentAction = action;
@@ -231,80 +219,53 @@
         modal.style.display = 'flex';
     }
 
-  document.getElementById('modalConfirmBtn').onclick = function() {
-    const card = document.querySelector(`.delivery-card[data-id="${currentId}"]`);
+    document.getElementById('modalConfirmBtn').onclick = function() {
+        const card = document.querySelector(`.delivery-card[data-id="${currentId}"]`);
 
-    if(currentAction === 'accept') {
-        fetch(`/driver/accept-delivery/${currentId}/`, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) {
-                // 1. Get current values from the card before moving it
-                const customerName = card.querySelector('h4').innerText;
-                const landmark = card.querySelector('.fa-location-dot').parentElement.innerText;
+        if(currentAction === 'accept') {
+            fetch(`/driver/accept-delivery/${currentId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    // 🔥 TRIGGER LIVE TRACKING IMMEDIATELY
+                    startLiveTracking(currentId);
 
-                // 2. Extract Phone and Items from the 'New' card
-                // (Assumes you've added them to the 'New Deliveries' section as instructed)
-                const phone = card.querySelector('.fa-phone').parentElement.innerText;
-                const itemsText = card.querySelector('strong').parentElement.innerText;
+                    // UI Updates
+                    const customerName = card.querySelector('h4').innerText;
+                    const phone = card.querySelector('.fa-phone').parentElement.innerText;
+                    const landmark = card.querySelector('.fa-location-dot').parentElement.innerText;
+                    const itemsText = card.querySelector('strong').parentElement.innerText;
 
-                // 3. Remove card from 'New' list
-                card.remove();
+                    card.remove();
+                    card.classList.add('active-job');
+                    const badge = card.querySelector('.priority-badge');
+                    if(badge) { badge.innerText = "In Transit"; badge.className = "priority-badge normal"; }
 
-                // 4. Transform the card into 'Active' layout
-                card.classList.add('active-job');
-                const badge = card.querySelector('.priority-badge');
-                if(badge) {
-                    badge.innerText = "In Transit";
-                    badge.className = "priority-badge normal";
+                    card.querySelector('.delivery-body').innerHTML = `
+                        <h4>${customerName}</h4>
+                        <p><a href="tel:${phone}" style="color:var(--success); text-decoration:none; font-weight:bold;"><i class="fa-solid fa-phone"></i> ${phone}</a></p>
+                        <p><i class="fa-solid fa-location-dot"></i> ${landmark}</p>
+                        <div style="background: #f1f1f1; padding: 8px; border-radius: 5px; margin-top: 10px; font-size: 13px;">${itemsText}</div>
+                    `;
+
+                    card.querySelector('.delivery-actions').innerHTML = `
+                        <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}" target="_blank" class="action-btn-primary"><i class="fa-solid fa-map"></i> View Map</a>
+                        <button class="action-btn-success" onclick="openTokenModal('${currentId}')"><i class="fa-solid fa-key"></i> Complete</button>
+                    `;
+
+                    const activeContainer = document.getElementById('myDeliveriesContainer');
+                    if(activeContainer.querySelector('.empty-msg')) activeContainer.querySelector('.empty-msg').remove();
+                    activeContainer.prepend(card);
                 }
+            });
+        } else { card.remove(); }
+        closeModals();
+    };
 
-                // 5. Update the body with the phone link and map
-                const body = card.querySelector('.delivery-body');
-                body.innerHTML = `
-                    <h4>${customerName}</h4>
-                    <p><a href="tel:${phone}" style="color:var(--success); text-decoration:none; font-weight:bold;">
-                        <i class="fa-solid fa-phone"></i> ${phone}
-                    </a></p>
-                    <p><i class="fa-solid fa-location-dot"></i> ${landmark}</p>
-                    <div style="background: #f1f1f1; padding: 8px; border-radius: 5px; margin-top: 10px; font-size: 13px;">
-                        ${itemsText}
-                    </div>
-                `;
-
-                // 6. Update the buttons (Map and Complete)
-                const actions = card.querySelector('.delivery-actions');
-                actions.style.gridTemplateColumns = "1fr 1fr";
-                actions.innerHTML = `
-                    <a href="https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}" target="_blank" class="action-btn-primary">
-                        <i class="fa-solid fa-map"></i> View Map
-                    </a>
-                    <button class="action-btn-success" onclick="openTokenModal('${currentId}')">
-                        <i class="fa-solid fa-key"></i> Complete
-                    </button>
-                `;
-
-                // 7. Move to Active Container
-                const activeContainer = document.getElementById('myDeliveriesContainer');
-                const emptyMsg = activeContainer.querySelector('.empty-msg');
-                if(emptyMsg) emptyMsg.remove();
-                activeContainer.prepend(card);
-
-            } else {
-                alert(data.error || "Could not accept delivery.");
-            }
-        });
-    } else {
-        card.remove();
-    }
-    closeModals();
-};
-
-
-    // 2. Handle Token Verification
+    // Token Verification
     function openTokenModal(id) {
         currentId = id;
         document.getElementById('tokenInput').value = '';
@@ -314,84 +275,43 @@
     document.getElementById('verifyTokenBtn').onclick = function() {
         const token = document.getElementById('tokenInput').value;
         if(token.length === 6) {
-            // Updated to use the verify-token URL we created in views.py
             fetch(`/verify-token/${currentId}/`, {
                 method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrftoken,
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'X-CSRFToken': csrftoken, 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 'token': token })
             })
             .then(response => response.json())
             .then(data => {
                 if(data.success) {
-                    alert("Order Verified & Completed!");
+                    alert("Order Verified!");
                     document.querySelector(`.delivery-card[data-id="${currentId}"]`).remove();
-                    closeModals();
-                    // Optionally refresh to update your earnings stat
+                    if(trackingSocket) trackingSocket.close();
                     location.reload();
-                } else {
-                    alert("Invalid Code: " + data.error);
-                }
+                } else { alert("Invalid Code!"); }
             });
-        } else {
-            alert("Please enter a 6-digit code.");
         }
     };
 
- // Initialize with the current count from the template .Checking for new deliveries without refreshing the page
-let lastJobCount = {{ deliveries|length }};
-
-function pollForJobs() {
-    fetch('/check-new-jobs/')
-        .then(response => response.json())
-        .then(data => {
-            // If the count on the server is higher than what we see, a new job arrived!
-            if (data.count > lastJobCount) {
-                console.log("New delivery found! Refreshing...");
-
-                // Play a subtle notification sound (optional)
-                // let audio = new Audio('{% static "sounds/notification.mp3" %}');
-                // audio.play();
-
-                // Refresh the feed
-                location.reload();
-            } else if (data.count < lastJobCount) {
-                // Someone else grabbed a job, update the count without reloading
+    // Polling for new jobs
+    let lastJobCount = {{ deliveries|length }};
+    setInterval(() => {
+        fetch('/check-new-jobs/')
+            .then(res => res.json())
+            .then(data => {
+                if (data.count > lastJobCount) location.reload();
                 lastJobCount = data.count;
-            }
-        })
-        .catch(err => console.log("Polling error:", err));
-}
+            });
+    }, 10000);
 
-// Check every 10 seconds
-setInterval(pollForJobs, 10000);
-
-
-function toggleHistory(event) {
-    const activeJobs = document.getElementById('activeJobs');
-    const newDeliveries = document.querySelector('.deliveries-section');
-    const historySection = document.getElementById('historySection');
-    const historyBtn = event.currentTarget;
-
-    if (historySection.style.display === 'none') {
-        // Show History, Hide Live Feed
-        historySection.style.display = 'block';
-        activeJobs.style.display = 'none';
-        newDeliveries.style.display = 'none';
-        historyBtn.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Back to Feed';
-        historyBtn.style.background = '#eee';
-    } else {
-        // Hide History, Show Live Feed
-        historySection.style.display = 'none';
-        activeJobs.style.display = 'block';
-        newDeliveries.style.display = 'block';
-        historyBtn.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> History';
-        historyBtn.style.background = '';
+    function toggleHistory(event) {
+        const historySection = document.getElementById('historySection');
+        const activeSection = document.getElementById('activeJobs');
+        const feedSection = document.querySelector('.deliveries-section');
+        const isHidden = historySection.style.display === 'none';
+        historySection.style.display = isHidden ? 'block' : 'none';
+        activeSection.style.display = isHidden ? 'none' : 'block';
+        feedSection.style.display = isHidden ? 'none' : 'block';
     }
-}
-
 </script>
 </body>
 </html>

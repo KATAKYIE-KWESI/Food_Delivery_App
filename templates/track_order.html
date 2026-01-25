@@ -8,6 +8,9 @@
         <p><strong>Number Plate:</strong> <span style="background: #333; color: #fff; padding: 2px 8px; border-radius: 4px;">{{ delivery.driver.vehicle_plate }}</span></p>
         <p><strong>Phone:</strong> <a href="tel:{{ delivery.driver.phone_number }}">{{ delivery.driver.phone_number }}</a></p>
     </div>
+
+    <div id="map" style="height: 300px; width: 100%; border-radius: 10px; margin-top: 20px;"></div>
+
     {% else %}
     <p>Waiting for a driver to accept your order...</p>
     {% endif %}
@@ -17,3 +20,42 @@
         <h1 style="letter-spacing: 5px; color: var(--primary);">{{ delivery.token }}</h1>
     </div>
 </div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    {% if delivery.driver %}
+    // Initialize map
+    const map = L.map('map').setView([6.6885, -1.6015], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Create a custom icon for the delivery bike
+    const bikeIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/3198/3198336.png', // Or a local path
+        iconSize: [32, 32]
+    });
+
+    const driverMarker = L.marker([6.6885, -1.6015], {icon: bikeIcon}).addTo(map);
+
+    // 3. Connect to the WebSocket
+    const deliveryId = "{{ delivery.id }}";
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/tracking/' + deliveryId + '/'
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const newLat = data.lat;
+        const newLng = data.lng;
+
+        // Update marker and center map
+        driverMarker.setLatLng([newLat, newLng]);
+        map.panTo([newLat, newLng]);
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Tracking socket closed unexpectedly');
+    };
+    {% endif %}
+</script>

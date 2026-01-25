@@ -17,6 +17,7 @@ from .models import Delivery
 from django.db.models import Count, Sum
 from django.utils import timezone
 from datetime import timedelta
+from .models import Delivery, Driver, CartItem, Profile  # Ensure Delivery is here
 
 
 
@@ -163,7 +164,7 @@ def add_to_cart(request):
             if not session_key:
                 request.session.create()
                 session_key = request.session.session_key
-        # Change this inside add_to_cart:
+
             cart_item, created = CartItem.objects.get_or_create(
                 user=request.user if request.user.is_authenticated else None,
                 session_key=None if request.user.is_authenticated else session_key,
@@ -216,12 +217,17 @@ def remove_from_cart(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
+
 def get_cart_count(request):
     if request.user.is_authenticated:
-        count = sum(item.quantity for item in CartItem.objects.filter(user=request.user))
+        count = CartItem.objects.filter(user=request.user).aggregate(total=Sum('quantity'))['total'] or 0
     else:
         session_key = request.session.session_key
-        count = sum(item.quantity for item in CartItem.objects.filter(session_key=session_key)) if session_key else 0
+        if not session_key:
+            count = 0
+        else:
+            count = CartItem.objects.filter(session_key=session_key).aggregate(total=Sum('quantity'))['total'] or 0
+
     return JsonResponse({'cart_count': count})
 
 
@@ -611,6 +617,8 @@ def driver_dashboard(request):
     })
 
 
+from .utils.routing import find_nearest_driver  # Ensure this import is at the top
+
 
 def payment(request):
     # Determine the user's cart (Auth or Session)
@@ -630,7 +638,6 @@ def payment(request):
 
     if request.method == "POST":
         # 1. Payment is confirmed! Pull details stored in session
-        # (Stored earlier by save_delivery_details)
         phone = request.session.get('temp_phone', 'Not provided')
         landmark = request.session.get('temp_landmark', 'No landmark provided')
 
@@ -640,7 +647,7 @@ def payment(request):
         lng = float(first_item.lon) if first_item.lon else 0.0
         items_summary = ", ".join([f"{item.quantity}x {item.food_name}" for item in cart_items])
 
-        # 3. Create the Delivery record (The actual order)
+        # 3. Create the Delivery record
         delivery = Delivery.objects.create(
             customer=request.user if request.user.is_authenticated else None,
             customer_name=request.user.username if request.user.is_authenticated else "Guest",
@@ -653,32 +660,49 @@ def payment(request):
             status="new"
         )
 
-        delivery.save()
-        # 4. Finalizing
-        # We store the token in the session just for the success page
+        # --- NEW: GREEDY ALGORITHM INTEGRATION ---
+        # Look for the nearest driver using your math logic
+        assigned_driver = find_nearest_driver(lat, lng)
+
+        if assigned_driver:
+            delivery.driver = assigned_driver
+            delivery.status = "assigned"  # Move from 'new' to 'assigned'
+            delivery.save()
+
+            # Optional: Mark driver as busy so they don't get 2 orders at once
+            # assigned_driver.is_available = False
+            # assigned_driver.save()
+        # ------------------------------------------
+
+        # 4. Finalizing session
         request.session['paid'] = True
         request.session['delivery_token'] = delivery.token
-        request.session.modified = True  # This tells Django to save the data right now
+        request.session.modified = True
 
         # 5. Telegram Notifications
         try:
+            # We add driver info to the alert if one was found
+            driver_info = f"🚴 Driver: {delivery.driver.user.username}" if delivery.driver else "❌ No Driver Found (Manual Accept Required)"
+
             send_telegram_alert(
                 f"💰 PAID ORDER: {delivery.token}\n"
                 f"📞 Phone: {phone}\n"
                 f"📍 Landmark: {landmark}\n"
-                f"💵 Total: GHS {totals['grand_total']}"
+                f"💵 Total: GHS {totals['grand_total']}\n"
+                f"{driver_info}"
             )
             if lat != 0.0:
                 send_telegram_location(lat, lng)
         except:
-            pass  # Prevent telegram errors from breaking the user experience
+            pass
 
-        # 6. Clear the cart and cleanup session
+            # 6. Clear the cart and cleanup session
         cart_items.delete()
         if 'temp_phone' in request.session: del request.session['temp_phone']
         if 'temp_landmark' in request.session: del request.session['temp_landmark']
 
-        return JsonResponse({'success': True})
+        # Send back the delivery_id so the frontend can redirect to /track/ID/
+        return JsonResponse({'success': True, 'delivery_id': delivery.id})
 
     # GET request: Show the payment page
     return render(request, 'payment.html', {
@@ -894,3 +918,21 @@ def driver_reports(request):
         "history": completed_jobs.order_by('-created_at')[:10]  # Last 10 jobs
     })
 
+
+from .utils.routing import find_nearest_driver
+
+
+def order_success_view(request, order_id):
+    order = Order.objects.get(id=order_id)
+
+    # 1. Use your greedy algorithm
+    driver = find_nearest_driver(order.lat, order.lng)
+
+    if driver:
+        order.driver = driver
+        order.status = 'assigned'
+        order.save()
+        # 2. Redirect to the tracking page where WebSockets take over
+        return render(request, 'track_order.html', {'order': order})
+    else:
+        return render(request, 'searching_driver.html')

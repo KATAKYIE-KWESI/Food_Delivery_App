@@ -16,6 +16,7 @@ urlpatterns = [
     path('cart/remove/', views.remove_from_cart, name='remove_from_cart'),
     path('cart/save-delivery-details/', views.save_delivery_details, name='save_delivery_details'),
     path('update-cart-location/', views.update_cart_location, name='update_cart_location'),
+    path('cart/count/', views.get_cart_count, name='get_cart_count'),
 
     # Payment & Order Processing
     path('payment/', views.payment, name='payment'),

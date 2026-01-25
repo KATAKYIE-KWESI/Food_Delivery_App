@@ -74,3 +74,58 @@ def save_user_profile(sender, instance, **kwargs):
     # This prevents errors if a profile somehow wasn't created
     if hasattr(instance, 'profile'):
         instance.profile.save()
+
+
+class Driver(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    phone_number = models.CharField(max_length=15, help_text="Driver's contact number")
+    vehicle_plate = models.CharField(max_length=20, help_text="e.g., AS-202-26")
+
+    # --- ADDED FOR REAL-TIME TRACKING ---
+    is_available = models.BooleanField(default=True, help_text="Is the driver ready for new jobs?")
+    current_lat = models.FloatField(default=0.0)
+    current_lng = models.FloatField(default=0.0)
+    last_location_update = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} ({'Active' if self.is_available else 'Busy'})"
+
+
+class Delivery(models.Model):
+    STATUS_CHOICES = [
+        ("new", "New (Searching Driver)"),
+        ("assigned", "Driver Assigned"),  # Added state
+        ("picked", "Picked"),
+        ("delivered", "Delivered")
+    ]
+
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True)
+    customer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deliveries', null=True)
+    customer_name = models.CharField(max_length=100)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    # Customer/Delivery Location
+    lat = models.FloatField()
+    lng = models.FloatField()
+
+    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    landmark = models.CharField(max_length=255, null=True, blank=True)
+    token = models.CharField(max_length=6, blank=True, null=True)
+    items_json = models.TextField(null=True, blank=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
+
+    # --- ADDED FOR ROUTE OPTIMIZATION ---
+    # Used if one driver has multiple 'picked' items
+    priority_order = models.PositiveIntegerField(default=0)
+
+    notified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order {self.id} - {self.status}"
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = str(random.randint(100000, 999999))
+        super().save(*args, **kwargs)
