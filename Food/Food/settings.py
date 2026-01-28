@@ -217,3 +217,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# This tells allauth to skip the intermediate "Connect" page for social logins
+SOCIALACCOUNT_LOGIN_ON_GET = True
