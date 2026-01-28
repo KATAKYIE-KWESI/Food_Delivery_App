@@ -17,7 +17,6 @@ from .models import Delivery
 from django.db.models import Count, Sum
 from django.utils import timezone
 from datetime import timedelta
-from .models import Delivery, Driver, CartItem, Profile  # Ensure Delivery is here
 
 
 
@@ -164,7 +163,7 @@ def add_to_cart(request):
             if not session_key:
                 request.session.create()
                 session_key = request.session.session_key
-
+        # Change this inside add_to_cart:
             cart_item, created = CartItem.objects.get_or_create(
                 user=request.user if request.user.is_authenticated else None,
                 session_key=None if request.user.is_authenticated else session_key,
@@ -217,17 +216,12 @@ def remove_from_cart(request):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
-
 def get_cart_count(request):
     if request.user.is_authenticated:
-        count = CartItem.objects.filter(user=request.user).aggregate(total=Sum('quantity'))['total'] or 0
+        count = sum(item.quantity for item in CartItem.objects.filter(user=request.user))
     else:
         session_key = request.session.session_key
-        if not session_key:
-            count = 0
-        else:
-            count = CartItem.objects.filter(session_key=session_key).aggregate(total=Sum('quantity'))['total'] or 0
-
+        count = sum(item.quantity for item in CartItem.objects.filter(session_key=session_key)) if session_key else 0
     return JsonResponse({'cart_count': count})
 
 
@@ -262,14 +256,10 @@ def signup_view(request):
         profile.phone_number = phone
         profile.save()
 
-        # 4. Save phone to session so chatbot knows immediately
-        request.session['temp_phone'] = phone
-        request.session.modified = True
-
-        # 5. Log the user in
+        # 4. Log the user in
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
-        # 6. Migrate Guest Cart to the new User account
+        # 5. Migrate Guest Cart to the new User account
         session_key = request.session.session_key
         if session_key:
             CartItem.objects.filter(session_key=session_key).update(user=user, session_key=None)
@@ -374,64 +364,45 @@ AI_TOOLS = [
 ]
 
 
-# ---  AI CHATBOT VIEW ---
+# --- UPDATED AI CHATBOT VIEW ---
 def ai_chatbot(request):
     user_message = request.GET.get("message", "").strip().lower()
 
     if not user_message:
         return JsonResponse({"reply": "Akwaaba! 👋 I'm JollyBot! How can I help? 😊"})
 
-    # Determine cart items for context
+    # 1. Determine the correct cart items for context (Auth or Session)
     if request.user.is_authenticated:
         cart_items = CartItem.objects.filter(user=request.user)
     else:
         session_key = request.session.session_key
         cart_items = CartItem.objects.filter(session_key=session_key) if session_key else []
 
-    cart_desc = ", ".join([f"{i.quantity}x {i.food_name}" for i in cart_items]) or "Empty"
+    cart_desc = ", ".join([f"{i.quantity}x {i.food_name}" for i in cart_items])
 
-    # --- CONTACT & LANDMARK RESOLUTION ---
-    user_phone = None
-    user_landmark = None
+    # 2. BETTER CONTACT CHECK: Check session AND actual User Profile
+    user_phone = request.session.get('temp_phone')
+    user_landmark = request.session.get('temp_landmark')
 
-    # 1. AUTHENTICATED USER → PROFILE FIRST
     if request.user.is_authenticated:
         profile, _ = Profile.objects.get_or_create(user=request.user)
-        if profile.phone_number and profile.phone_number.strip():
-            user_phone = profile.phone_number.strip()
-            request.session['temp_phone'] = user_phone  # ONLY save if exists
-            request.session.modified = True
-
+        if profile.phone_number:
+            user_phone = profile.phone_number
+        # Also check if any cart item already has a landmark
         first_cart = cart_items.first()
-        if first_cart and first_cart.address_text and first_cart.address_text.strip():
-            user_landmark = first_cart.address_text.strip()
-            request.session['temp_landmark'] = user_landmark
-            request.session.modified = True
+        if first_cart and first_cart.address_text:
+            user_landmark = first_cart.address_text
 
-    # 2. GUEST USER → FALL BACK TO SESSION
-    else:
-        user_phone = request.session.get('temp_phone')
-        user_landmark = request.session.get('temp_landmark')
+    has_contact = user_phone is not None and user_phone != ""
 
-    # 3. FINAL FALLBACK
-    if not user_phone:
-        user_phone = "unknown"
-    if not user_landmark:
-        user_landmark = "unknown"
-
-    has_contact = user_phone != "unknown"
-
-    # --- SYSTEM RULES FOR AI ---
+    # 3. Dynamic System Rules (Tells the AI exactly what we already know)
     rules = f"""
-    You are JollyBot 🍽️, a food-ordering assistant.
+    You're JollyBot, friendly AI for JollyFoods! 🍽️
+    Be warm, use emojis 😊 
 
-    ⚠️ CRITICAL RULE:
-    - If CONTACT SAVED is Yes, NEVER ask for phone again.
-
-    CURRENT CART: {cart_desc}
-    CONTACT SAVED: {"Yes" if has_contact else "No"}
-    PHONE NUMBER: {user_phone}
-    LANDMARK: {user_landmark}
+    CURRENT CART: {cart_desc if cart_desc else 'Empty'}.
+    CONTACT SAVED: {"Yes (" + str(user_phone) + ")" if has_contact else "No"}.
+    LANDMARK SAVED: {user_landmark if user_landmark else "None"}.
 
     MENU:
     - Garden Salad: GHS 12
@@ -445,11 +416,12 @@ def ai_chatbot(request):
     - Juice: GHS 5
 
     AUTOMATION RULES:
-    1. If user wants food → call add_item_to_cart.
-    2. If user wants to checkout:
-       - If CONTACT SAVED is No → ask for phone & landmark.
-       - If CONTACT SAVED is Yes → IMMEDIATELY call trigger_checkout.
-    3. NEVER ask for phone if CONTACT SAVED is Yes.
+    1. If user wants food, call 'add_item_to_cart'.
+    2. If user wants to pay/checkout:
+       - If 'CONTACT SAVED' is No, YOU MUST ASK for their phone number and landmark. Do NOT call trigger_checkout yet.
+       - Once they provide them, call 'save_user_contact'.
+       - Only if 'CONTACT SAVED' is Yes, call 'trigger_checkout'.
+    3. If NOT on menu, say we don't have it.
     """
 
     try:
@@ -470,7 +442,7 @@ def ai_chatbot(request):
             func_name = tool_call.function.name
             args = json.loads(tool_call.function.arguments)
 
-            # --- ADD TO CART ---
+            # --- HANDLE: ADD TO CART ---
             if func_name == "add_item_to_cart":
                 prices = {
                     "garden salad": 12, "greek salad": 12, "veg salad": 18,
@@ -478,9 +450,12 @@ def ai_chatbot(request):
                     "fried rice": 13, "soda": 2, "juice": 5
                 }
                 food_name = args.get("item_name", "").lower()
+
                 if food_name in prices:
+                    # Fix: Ensure session exists for guest
                     if not request.user.is_authenticated and not request.session.session_key:
                         request.session.create()
+
                     session_key = request.session.session_key
 
                     CartItem.objects.create(
@@ -495,17 +470,19 @@ def ai_chatbot(request):
                         "action": "refresh_ui"
                     })
                 else:
-                    return JsonResponse({"reply": f"Sorry, we don't have {food_name} today! 😅"})
+                    return JsonResponse({"reply": f"Sorry, we don't have {food_name} on our menu today! 😅"})
 
-            # --- SAVE USER CONTACT ---
+            # --- HANDLE: SAVE CONTACT ---
             if func_name == "save_user_contact":
                 phone = args.get("phone")
                 landmark = args.get("landmark", "No landmark provided")
 
+                # Store in session
                 request.session['temp_phone'] = phone
                 request.session['temp_landmark'] = landmark
                 request.session.modified = True
 
+                # If logged in, update their profile permanently
                 if request.user.is_authenticated:
                     prof, _ = Profile.objects.get_or_create(user=request.user)
                     prof.phone_number = phone
@@ -519,19 +496,21 @@ def ai_chatbot(request):
                     "action": "refresh_ui"
                 })
 
-            # --- TRIGGER CHECKOUT ---
+            # --- HANDLE: TRIGGER CHECKOUT ---
             if func_name == "trigger_checkout":
                 first_item = cart_items.first()
+
+                # 1. Check for GPS (Crucial)
                 if not first_item or not first_item.lat or first_item.lat == 0:
                     return JsonResponse({
                         "reply": "I'm ready! 📍 But first, I need your location so the rider can find you. I'm requesting it now...",
                         "action": "request_gps"
                     })
 
+                # 2. Final Check for Phone (Redundancy check)
                 if not has_contact:
-                    return JsonResponse({
-                        "reply": "Wait! I still need your phone number for the delivery rider before we can pay. 📞"
-                    })
+                    return JsonResponse(
+                        {"reply": "Wait! I still need your phone number for the delivery rider before we can pay. 📞"})
 
                 return JsonResponse({
                     "reply": "Everything is set! Redirecting you to the secure payment page... 💳",
@@ -539,14 +518,13 @@ def ai_chatbot(request):
                     "url": "/payment/"
                 })
 
-        # Default text response
+        # Default text response if no tool was called
         return JsonResponse({"reply": resp_msg.content})
 
     except Exception as e:
         print("❌ Groq API ERROR:")
         traceback.print_exc()
         return JsonResponse({"reply": "Oops! My brain stalled. Try again? 😅"}, status=500)
-
 
 # Geolocation view
 def update_cart_location(request):
@@ -617,8 +595,6 @@ def driver_dashboard(request):
     })
 
 
-from .utils.routing import find_nearest_driver  # Ensure this import is at the top
-
 
 def payment(request):
     # Determine the user's cart (Auth or Session)
@@ -638,6 +614,7 @@ def payment(request):
 
     if request.method == "POST":
         # 1. Payment is confirmed! Pull details stored in session
+        # (Stored earlier by save_delivery_details)
         phone = request.session.get('temp_phone', 'Not provided')
         landmark = request.session.get('temp_landmark', 'No landmark provided')
 
@@ -647,7 +624,7 @@ def payment(request):
         lng = float(first_item.lon) if first_item.lon else 0.0
         items_summary = ", ".join([f"{item.quantity}x {item.food_name}" for item in cart_items])
 
-        # 3. Create the Delivery record
+        # 3. Create the Delivery record (The actual order)
         delivery = Delivery.objects.create(
             customer=request.user if request.user.is_authenticated else None,
             customer_name=request.user.username if request.user.is_authenticated else "Guest",
@@ -660,49 +637,32 @@ def payment(request):
             status="new"
         )
 
-        # --- NEW: GREEDY ALGORITHM INTEGRATION ---
-        # Look for the nearest driver using your math logic
-        assigned_driver = find_nearest_driver(lat, lng)
-
-        if assigned_driver:
-            delivery.driver = assigned_driver
-            delivery.status = "assigned"  # Move from 'new' to 'assigned'
-            delivery.save()
-
-            # Optional: Mark driver as busy so they don't get 2 orders at once
-            # assigned_driver.is_available = False
-            # assigned_driver.save()
-        # ------------------------------------------
-
-        # 4. Finalizing session
+        delivery.save()
+        # 4. Finalizing
+        # We store the token in the session just for the success page
         request.session['paid'] = True
         request.session['delivery_token'] = delivery.token
-        request.session.modified = True
+        request.session.modified = True  # This tells Django to save the data right now
 
         # 5. Telegram Notifications
         try:
-            # We add driver info to the alert if one was found
-            driver_info = f"🚴 Driver: {delivery.driver.user.username}" if delivery.driver else "❌ No Driver Found (Manual Accept Required)"
-
             send_telegram_alert(
                 f"💰 PAID ORDER: {delivery.token}\n"
                 f"📞 Phone: {phone}\n"
                 f"📍 Landmark: {landmark}\n"
-                f"💵 Total: GHS {totals['grand_total']}\n"
-                f"{driver_info}"
+                f"💵 Total: GHS {totals['grand_total']}"
             )
             if lat != 0.0:
                 send_telegram_location(lat, lng)
         except:
-            pass
+            pass  # Prevent telegram errors from breaking the user experience
 
-            # 6. Clear the cart and cleanup session
+        # 6. Clear the cart and cleanup session
         cart_items.delete()
         if 'temp_phone' in request.session: del request.session['temp_phone']
         if 'temp_landmark' in request.session: del request.session['temp_landmark']
 
-        # Send back the delivery_id so the frontend can redirect to /track/ID/
-        return JsonResponse({'success': True, 'delivery_id': delivery.id})
+        return JsonResponse({'success': True})
 
     # GET request: Show the payment page
     return render(request, 'payment.html', {
@@ -918,21 +878,3 @@ def driver_reports(request):
         "history": completed_jobs.order_by('-created_at')[:10]  # Last 10 jobs
     })
 
-
-from .utils.routing import find_nearest_driver
-
-
-def order_success_view(request, order_id):
-    order = Order.objects.get(id=order_id)
-
-    # 1. Use your greedy algorithm
-    driver = find_nearest_driver(order.lat, order.lng)
-
-    if driver:
-        order.driver = driver
-        order.status = 'assigned'
-        order.save()
-        # 2. Redirect to the tracking page where WebSockets take over
-        return render(request, 'track_order.html', {'order': order})
-    else:
-        return render(request, 'searching_driver.html')
