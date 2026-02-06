@@ -115,9 +115,46 @@
     }
 
     .ai-toggle-btn:hover { transform: rotate(15deg) scale(1.05); }
+
+
+   .ai-nudge {
+    background: white;
+    padding: 12px 16px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    margin-bottom: 10px;
+    font-size: 13px;
+    max-width: 200px;
+    cursor: pointer;
+    border-left: 4px solid tomato;
+    animation: float 3s ease-in-out infinite;
+    display: none; /* Hidden by default, shown by JS */
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+.nudge-arrow {
+    position: absolute;
+    bottom: -8px;
+    right: 20px;
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid white;
+}
+
 </style>
 
 <div class="ai-container">
+
+    <div class="ai-nudge" id="aiNudge" onclick="toggleChat()">
+    Hungry? I can recommend the best <strong>Spicy Noodles!</strong> 🍜
+    <div class="nudge-arrow"></div>
+    </div>
+
     <div class="ai-chat-card" id="aiChatCard">
         <div class="ai-header">
             <span>JollyBot 🤖</span>
@@ -138,17 +175,42 @@
 </div>
 
 <script>
+// Existing toggleChat function - update it to hide the nudge when opened
 function toggleChat() {
     const card = document.getElementById('aiChatCard');
+    const nudge = document.getElementById('aiNudge');
     const input = document.getElementById('aiInput');
 
     if (card.style.display === 'none' || card.style.display === '') {
         card.style.display = 'flex';
+        if(nudge) nudge.style.display = 'none'; // Hide nudge when chat is open
         input.focus();
     } else {
         card.style.display = 'none';
     }
 }
+
+// NEW: Trigger the nudge after 5 seconds
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const nudge = document.getElementById('aiNudge');
+        const card = document.getElementById('aiChatCard');
+        // Only show nudge if the chat isn't already open
+        if (card.style.display !== 'flex') {
+            nudge.style.display = 'block';
+        }
+    }, 5000);
+});
+
+// NEW: Shake the button occasionally to grab attention
+setInterval(() => {
+    const btn = document.getElementById('botToggleButton');
+    btn.style.transform = "translateX(5px)";
+    setTimeout(() => btn.style.transform = "translateX(-5px)", 100);
+    setTimeout(() => btn.style.transform = "translateX(0)", 200);
+}, 10000); // Every 10 seconds
+
+
 
 async function sendToAI() {
     const input = document.getElementById('aiInput');
